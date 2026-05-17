@@ -1,6 +1,7 @@
 ﻿import { defineStore } from 'pinia';
 import salaryService from '../services/salaryService';
 import salarySystemService from '../services/salarySystemService';
+import gridConfigService from '../services/gridConfigService';
 const DEFAULT_ITEM = {
   SalaryCompositionCode: '',
   SalaryCompositionName: '',
@@ -74,6 +75,22 @@ const REVERSE_MAP_DATA_TYPE = {
 const getField = (item, pascalName) => {
   const camelName = pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
   return item?.[camelName] ?? item?.[pascalName];
+};
+
+const GRID_CONFIG_TABLE_NAME = 'salary_composition_list';
+
+const normalizeColumnKey = (value) => String(value || '').replace(/_/g, '').toLowerCase();
+
+const toFixedStatus = (column) => {
+  if (!column.fixed) return 0;
+  return column.fixedPosition === 'right' ? 2 : 1;
+};
+
+const fromFixedStatus = (status) => {
+  const numericStatus = Number(status) || 0;
+  if (numericStatus === 2) return { fixed: true, fixedPosition: 'right' };
+  if (numericStatus === 1) return { fixed: true, fixedPosition: 'left' };
+  return { fixed: false, fixedPosition: undefined };
 };
 
 const unwrapServiceResult = (response) => {
@@ -151,8 +168,8 @@ export const useSalaryStore = defineStore('salary', {
     loading: false,
     lastError: null,
     columns: [
-      { dataField: 'SalaryCompositionCode', caption: 'Mã thành phần', width: 250, minWidth: 100, maxWidth: 300, visible: true, fixed: true },
-      { dataField: 'SalaryCompositionName', caption: 'Tên thành phần', width: 350, minWidth: 150, maxWidth: 450, visible: true },
+      { dataField: 'SalaryCompositionCode', caption: 'Mã thành phần', width: 250, minWidth: 100, maxWidth: 300, visible: true, fixed: true, fixedPosition: 'left', sortOrder: 1 },
+      { dataField: 'SalaryCompositionName', caption: 'Tên thành phần', width: 350, minWidth: 150, maxWidth: 450, visible: true, fixed: true, fixedPosition: 'left', sortOrder: 2 },
       { dataField: 'AppliedUnit', caption: 'Đơn vị áp dụng', width: 200, minWidth: 120, maxWidth: 300, visible: true },
       { dataField: 'SalaryCompositionType', caption: 'Loại thành phần', width: 250, minWidth: 120, maxWidth: 350, visible: true },
       { dataField: 'Nature', caption: 'Tính chất', width: 200, minWidth: 100, maxWidth: 300, visible: true, cellTemplate: 'natureTemplate' },
@@ -221,6 +238,80 @@ export const useSalaryStore = defineStore('salary', {
 
     reorderColumns(newColumns) {
       this.columns = newColumns;
+    },
+
+    applyGridConfigs(configs) {
+      if (!Array.isArray(configs) || configs.length === 0) return;
+
+      const configByColumn = new Map(
+        configs.map((config) => [
+          normalizeColumnKey(getField(config, 'GridConfigColumnName')),
+          config,
+        ])
+      );
+
+      this.columns = this.columns
+        .map((column, index) => {
+          const config = configByColumn.get(normalizeColumnKey(column.dataField));
+          if (!config) return { ...column, sortOrder: column.sortOrder ?? index + 1 };
+
+          const fixedState = fromFixedStatus(getField(config, 'GridConfigFixedStatus'));
+          return {
+            ...column,
+            width: Number(getField(config, 'GridConfigWidthSize')) || column.width,
+            visible: Number(getField(config, 'GridConfigVisibleStatus')) !== 0,
+            ...fixedState,
+            sortOrder: Number(getField(config, 'GridConfigSortOrder')) || index + 1,
+          };
+        })
+        .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+    },
+
+    applyColumnRuntimeState(states) {
+      if (!Array.isArray(states) || states.length === 0) return;
+
+      const stateByField = new Map(states.map((state) => [state.dataField, state]));
+
+      this.columns = this.columns
+        .map((column, index) => {
+          const state = stateByField.get(column.dataField);
+          if (!state) return { ...column, sortOrder: column.sortOrder ?? index + 1 };
+
+          return {
+            ...column,
+            width: Number(state.width) || column.width,
+            visible: state.visible !== false,
+            fixed: !!state.fixed,
+            fixedPosition: state.fixed ? (state.fixedPosition || 'left') : undefined,
+            sortOrder: Number.isFinite(state.visibleIndex) ? state.visibleIndex + 1 : column.sortOrder ?? index + 1,
+          };
+        })
+        .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+    },
+
+    async fetchGridConfigs() {
+      try {
+        const response = await gridConfigService.getGridConfigs({ tableName: GRID_CONFIG_TABLE_NAME });
+        const configs = unwrapServiceResult(response);
+        this.applyGridConfigs(configs);
+      } catch (error) {
+        console.error('[salaryStore] fetchGridConfigs error:', error);
+        throw error;
+      }
+    },
+
+    async saveGridConfigs() {
+      const payload = this.columns.map((column, index) => ({
+        gridConfigTableName: GRID_CONFIG_TABLE_NAME,
+        gridConfigColumnName: column.dataField,
+        gridConfigColumnCaption: column.caption,
+        gridConfigWidthSize: Number(column.width) || 150,
+        gridConfigVisibleStatus: column.visible === false ? 0 : 1,
+        gridConfigFixedStatus: toFixedStatus(column),
+        gridConfigSortOrder: index + 1,
+      }));
+
+      await gridConfigService.saveGridConfigs(payload, { tableName: GRID_CONFIG_TABLE_NAME });
     },
 
     async fetchSystemComponents() {

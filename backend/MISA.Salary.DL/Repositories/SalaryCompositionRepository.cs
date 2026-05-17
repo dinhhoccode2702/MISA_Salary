@@ -144,11 +144,34 @@ namespace MISA.Salary.DL.Repositories
                 WHERE s.salary_system_id IN @Ids
                 AND NOT EXISTS (
                     SELECT 1 FROM pa_salary_composition c 
-                    WHERE c.salary_composition_code = s.salary_system_code
+                    WHERE c.organization_id = @OrganizationId
+                      AND c.salary_composition_code = s.salary_system_code
                 )";
 
             var parameters = new { Ids = systemIds, OrganizationId = organizationId };
             return await connection.ExecuteAsync(sql, parameters);
+        }
+
+        public async Task<bool> CheckDuplicateCodeInOrganizationAsync(Guid organizationId, string salaryCompositionCode, Guid? excludeId = null)
+        {
+            using var connection = GetConnection();
+            var sql = @"SELECT COUNT(*)
+                        FROM pa_salary_composition
+                        WHERE organization_id = @OrganizationId
+                          AND salary_composition_code = @SalaryCompositionCode";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("OrganizationId", organizationId);
+            parameters.Add("SalaryCompositionCode", salaryCompositionCode);
+
+            if (excludeId.HasValue)
+            {
+                sql += " AND salary_composition_id != @ExcludeId";
+                parameters.Add("ExcludeId", excludeId.Value);
+            }
+
+            var count = await connection.ExecuteScalarAsync<int>(sql, parameters);
+            return count > 0;
         }
 
         /// <summary>

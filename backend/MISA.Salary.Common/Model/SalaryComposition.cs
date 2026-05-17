@@ -19,7 +19,7 @@ namespace MISA.Salary.Common.Model
         public Guid SalaryCompositionId { get; set; }
 
         /// <summary>
-        /// ID đơn vị áp dụng (FK -> pa_organization)
+        /// ID đơn vị áp dụng (FK -> pa_organization.organization_id).
         /// </summary>
         [MISARequired("Đơn vị áp dụng không được để trống.")]
         public Guid OrganizationId { get; set; }
@@ -29,7 +29,6 @@ namespace MISA.Salary.Common.Model
         /// </summary>
         [MISARequired("Mã thành phần lương không được để trống.")]
         [MISAMaxLength(255, "Mã thành phần lương không được vượt quá 255 ký tự.")]
-        [MISAUnique("Mã thành phần lương đã tồn tại trong hệ thống.")]
         public string SalaryCompositionCode { get; set; } = string.Empty;
 
         /// <summary>

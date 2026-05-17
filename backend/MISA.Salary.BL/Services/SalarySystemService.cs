@@ -30,11 +30,15 @@ namespace MISA.Salary.BL.Services
         /// Đưa thành phần lương từ danh mục hệ thống vào danh sách sử dụng
         /// Quy trình:
         /// 1. Lấy thông tin các TPL hệ thống theo danh sách ID
-        /// 2. Tạo bản sao cho mỗi TPL trong bảng pa_salary_composition với OrganizationId tương ứng
+        /// 2. Tạo bản sao cho mỗi TPL trong bảng pa_salary_composition với OrganizationId tương ứng.
         /// </summary>
         public async Task<ServiceResult> AddToListAsync(List<Guid> ids, Guid organizationId)
         {
             var addedCount = 0;
+            if (organizationId == Guid.Empty)
+            {
+                return ServiceResult.Failure("Đơn vị áp dụng không được để trống.");
+            }
 
             foreach (var id in ids)
             {
@@ -62,11 +66,10 @@ namespace MISA.Salary.BL.Services
                     ModifiedDate = DateTime.Now
                 };
 
-                // Kiểm tra mã có trùng trong cùng một Organization không
-                // Lưu ý: Trong repo CheckDuplicateAsync đang kiểm tra toàn cục nếu không truyền OrganizationId
-                // Nhưng theo schema, salary_composition_code có UNIQUE INDEX nên phải cẩn thận.
-                var isDuplicate = await _compositionRepo.CheckDuplicateAsync(
-                    "salary_composition_code", newComposition.SalaryCompositionCode);
+                // Mã thành phần chỉ cần duy nhất trong phạm vi một đơn vị.
+                var isDuplicate = await _compositionRepo.CheckDuplicateCodeInOrganizationAsync(
+                    newComposition.OrganizationId,
+                    newComposition.SalaryCompositionCode);
                 
                 if (!isDuplicate)
                 {

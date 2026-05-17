@@ -31,6 +31,11 @@ namespace MISA.Salary.DL.Interfaces
         Task<int> BulkImportAsync(List<Guid> systemIds, Guid organizationId);
 
         /// <summary>
+        /// Kiểm tra trùng mã thành phần trong phạm vi một đơn vị.
+        /// </summary>
+        Task<bool> CheckDuplicateCodeInOrganizationAsync(Guid organizationId, string salaryCompositionCode, Guid? excludeId = null);
+
+        /// <summary>
         /// Cập nhật trạng thái của thành phần lương
         /// </summary>
         Task<int> UpdateStatusAsync(Guid id, int status);

@@ -516,7 +516,12 @@ onMounted(async () => {
     if (Array.isArray(orgs)) {
       organizationOptions.value = [
         { value: null, label: 'Chọn đơn vị áp dụng' },
-        ...orgs.map(o => ({ value: o.organizationId, label: o.organizationName }))
+        ...orgs.map((o) => {
+          const id = o.organizationId ?? o.OrganizationId;
+          const code = o.organizationCode ?? o.OrganizationCode;
+          const name = o.organizationName ?? o.OrganizationName;
+          return { value: id, label: `${code} - ${name}` };
+        })
       ];
     }
   } catch (error) {

@@ -11,14 +11,14 @@ using MISA.Salary.DL.Interfaces;
 namespace MISA.Salary.BL.Services
 {
     /// <summary>
-    /// Service xử lý nghiệp vụ cho Thành phần lương
-    /// Kế thừa BaseService và bổ sung: phân trang nâng cao, nhân bản, chuyển trạng thái
+    /// Service xử lý nghiệp vụ cho Thành phần lương.
+    /// Kế thừa BaseService và bổ sung: phân trang nâng cao, nhân bản, chuyển trạng thái.
     /// Author: MISA (10/05/2026)
     /// </summary>
     public class SalaryCompositionService : BaseService<SalaryComposition>, ISalaryCompositionService
     {
         /// <summary>
-        /// Repository cụ thể (cast từ IBaseRepository sang ISalaryCompositionRepository)
+        /// Repository cụ thể của Thành phần lương.
         /// </summary>
         private readonly ISalaryCompositionRepository _salaryCompositionRepo;
 
@@ -28,10 +28,8 @@ namespace MISA.Salary.BL.Services
         }
 
         /// <summary>
-        /// Lấy danh sách phân trang với bộ lọc nâng cao
-        /// - Tìm kiếm theo Mã/Tên
-        /// - Lọc theo Trạng thái (Đang theo dõi / Ngừng theo dõi)
-        /// - Lọc theo Đơn vị công tác
+        /// Lấy danh sách phân trang với bộ lọc nâng cao:
+        /// tìm kiếm theo mã/tên, lọc trạng thái, lọc đơn vị áp dụng.
         /// </summary>
         public async Task<ServiceResult> GetPagingWithFilterAsync(
             int skip, 
@@ -50,28 +48,30 @@ namespace MISA.Salary.BL.Services
         }
 
         /// <summary>
-        /// Nhân bản một thành phần lương (copy dữ liệu, tạo mã mới)
+        /// Nhân bản một thành phần lương, tạo ID và mã mới.
         /// </summary>
         public async Task<ServiceResult> CloneAsync(Guid id)
         {
-            // Lấy bản ghi gốc
+            // Lấy bản ghi gốc trước khi tạo bản sao.
             var original = await _repository.GetByIdAsync(id);
             if (original == null)
             {
                 throw new NotFoundException($"Không tìm thấy thành phần lương với ID: {id}");
             }
 
-            // Tạo bản sao với ID mới
+            // Tạo bản sao với ID mới.
             original.SalaryCompositionId = Guid.NewGuid();
             original.SalaryCompositionCode = $"{original.SalaryCompositionCode}_Copy";
             original.SalaryCompositionName = $"{original.SalaryCompositionName} - Bản sao";
-            original.SalaryCompositionIsSystemStatus = 0; // Bản sao thì không phải hệ thống
+            original.SalaryCompositionIsSystemStatus = 0;
             original.CreatedDate = DateTime.Now;
             original.ModifiedDate = DateTime.Now;
 
-            // Kiểm tra mã mới có trùng không, nếu trùng thêm số
+            // Kiểm tra mã mới trong cùng đơn vị, nếu trùng thì thêm hậu tố số.
             int counter = 1;
-            while (await _repository.CheckDuplicateAsync("salary_composition_code", original.SalaryCompositionCode))
+            while (await _salaryCompositionRepo.CheckDuplicateCodeInOrganizationAsync(
+                original.OrganizationId,
+                original.SalaryCompositionCode))
             {
                 original.SalaryCompositionCode = $"{original.SalaryCompositionCode}_Copy_{counter}";
                 counter++;
@@ -82,8 +82,8 @@ namespace MISA.Salary.BL.Services
         }
 
         /// <summary>
-        /// Chuyển trạng thái thành phần lương (Sử dụng lệnh UPDATE tập trung)
-        /// Đang theo dõi (1) ↔ Ngừng theo dõi (0)
+        /// Chuyển trạng thái thành phần lương.
+        /// Đang theo dõi (1) hoặc Ngừng theo dõi (0).
         /// </summary>
         public async Task<ServiceResult> ToggleStatusAsync(Guid id, int newStatus)
         {
@@ -96,10 +96,11 @@ namespace MISA.Salary.BL.Services
         }
 
         /// <summary>
-        /// Override InsertAsync để gán ID mới và timestamp trước khi thêm
+        /// Chuẩn hóa dữ liệu, gán ID mới và timestamp trước khi thêm.
         /// </summary>
         public override async Task<ServiceResult> InsertAsync(SalaryComposition entity)
         {
+            NormalizeSalaryComposition(entity);
             entity.SalaryCompositionId = Guid.NewGuid();
             entity.CreatedDate = DateTime.Now;
             entity.ModifiedDate = DateTime.Now;
@@ -107,16 +108,17 @@ namespace MISA.Salary.BL.Services
         }
 
         /// <summary>
-        /// Override UpdateAsync để cập nhật timestamp
+        /// Chuẩn hóa dữ liệu và cập nhật timestamp trước khi sửa.
         /// </summary>
         public override async Task<ServiceResult> UpdateAsync(SalaryComposition entity, Guid id)
         {
+            NormalizeSalaryComposition(entity);
             entity.ModifiedDate = DateTime.Now;
             return await base.UpdateAsync(entity, id);
         }
 
         /// <summary>
-        /// Override DeleteAsync để kiểm tra thành phần lương hệ thống không được xóa
+        /// Không cho phép xóa thành phần lương thuộc danh mục hệ thống.
         /// </summary>
         public override async Task<ServiceResult> DeleteAsync(Guid id)
         {
@@ -126,7 +128,7 @@ namespace MISA.Salary.BL.Services
                 throw new NotFoundException($"Không tìm thấy thành phần lương với ID: {id}");
             }
 
-            // Kiểm tra: Không cho phép xóa thành phần lương thuộc hệ thống (1 là hệ thống)
+            // Kiểm tra cứng để dữ liệu hệ thống không bị xóa nhầm.
             if (entity.SalaryCompositionIsSystemStatus == 1)
             {
                 throw new ValidateException("Không thể xóa thành phần lương thuộc danh mục hệ thống.");
@@ -175,6 +177,38 @@ namespace MISA.Salary.BL.Services
             var rowAffected = await _salaryCompositionRepo.BulkImportAsync(systemIds, organizationId);
 
             return ServiceResult.Success(rowAffected);
+        }
+
+        protected override async Task ValidateCustom(SalaryComposition entity, Guid? id, Dictionary<string, string> errors)
+        {
+            if (entity.OrganizationId == Guid.Empty)
+            {
+                errors[nameof(SalaryComposition.OrganizationId)] = "Đơn vị áp dụng không được để trống.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(entity.SalaryCompositionCode))
+            {
+                return;
+            }
+
+            var isDuplicate = await _salaryCompositionRepo.CheckDuplicateCodeInOrganizationAsync(
+                entity.OrganizationId,
+                entity.SalaryCompositionCode,
+                id);
+
+            if (isDuplicate)
+            {
+                errors[nameof(SalaryComposition.SalaryCompositionCode)] =
+                    "Mã thành phần lương đã tồn tại trong đơn vị áp dụng.";
+            }
+        }
+
+        private static void NormalizeSalaryComposition(SalaryComposition entity)
+        {
+            entity.SalaryCompositionCode = entity.SalaryCompositionCode?.Trim() ?? string.Empty;
+            entity.SalaryCompositionName = entity.SalaryCompositionName?.Trim() ?? string.Empty;
+            entity.SalaryCompositionDescription = entity.SalaryCompositionDescription?.Trim();
         }
     }
 }

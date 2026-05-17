@@ -123,6 +123,7 @@ import MsInput from '@/components/base/MsInput.vue';
 import MsCheckbox from '@/components/base/MsCheckbox.vue';
 import { useSalaryStore } from '@/stores/salaryStore';
 import salaryService from '@/services/salaryService';
+import organizationService from '@/services/organizationService';
 import { SALARY_COMPOSITION as R } from '@/utils/resources';
 import { useToast } from '@/composables/useToast';
 
@@ -135,6 +136,8 @@ const selectedRows = ref([]);
 const showColumnSettings = ref(false);
 const gridRef = ref(null);
 const pagination = reactive({ currentPage: 1, pageSize: 25 });
+const organizationRows = ref([]);
+const selectedOrganizationId = ref('');
 
 const columnSettingsSearch = ref('');
 const columnVisibilityDraft = ref({});
@@ -173,7 +176,10 @@ const typeOptions = [
   'Thông tin nhân viên',
 ];
 const selectedType = ref('Tất cả thành phần');
-const toolbarFilters = ref([{ id: 'type', modelValue: selectedType.value, options: typeOptions, width: '220px' }]);
+const toolbarFilters = ref([
+  { id: 'unit', modelValue: selectedOrganizationId.value, options: [{ value: '', label: 'Chọn đơn vị áp dụng' }], width: '350px' },
+  { id: 'type', modelValue: selectedType.value, options: typeOptions, width: '220px' },
+]);
 const rowActions = [{ key: 'add', icon: 'add', color: 'green', label: 'Thêm', variant: 'default', noHoverBg: true }];
 const selectionToolbarActions = [
   { key: 'add-to-list', label: 'Đưa vào danh sách sử dụng', icon: 'add' },
@@ -290,6 +296,36 @@ const pagedComponents = computed(() => {
 
 const getSystemId = (row) => row?.salarySystemId || row?.SalarySystemId;
 
+const organizationOptions = computed(() => [
+  { value: '', label: 'Chọn đơn vị áp dụng' },
+  ...organizationRows.value.map((org) => {
+    const id = org?.organizationId ?? org?.OrganizationId;
+    const code = org?.organizationCode ?? org?.OrganizationCode;
+    const name = org?.organizationName ?? org?.OrganizationName;
+    return { value: id, label: `${code} - ${name}` };
+  }),
+]);
+
+const getDefaultOrganizationId = () => {
+  if (salaryStore.filters.unit) return salaryStore.filters.unit;
+  const firstOrg = organizationRows.value[0];
+  return firstOrg?.organizationId ?? firstOrg?.OrganizationId ?? '';
+};
+
+const loadOrganizations = async () => {
+  const orgRes = await organizationService.getAll();
+  const orgService = orgRes?.data;
+  const orgs = orgService?.Data ?? orgService?.data ?? orgService ?? orgRes ?? [];
+  organizationRows.value = Array.isArray(orgs) ? orgs : [];
+  selectedOrganizationId.value = getDefaultOrganizationId();
+
+  const unitFilter = toolbarFilters.value.find((filter) => filter.id === 'unit');
+  if (unitFilter) {
+    unitFilter.options = organizationOptions.value;
+    unitFilter.modelValue = selectedOrganizationId.value;
+  }
+};
+
 const importSystemRows = async (rows) => {
   const systemIds = rows.map(getSystemId).filter(Boolean);
   if (!systemIds.length) {
@@ -297,13 +333,13 @@ const importSystemRows = async (rows) => {
     return;
   }
 
-  const organizationId = salaryStore.filters.unit;
+  const organizationId = selectedOrganizationId.value;
   if (!organizationId) {
-    toast.show('Vui lòng chọn đơn vị áp dụng ở danh sách Thành phần lương trước khi thêm.', 'warning');
+    toast.show('Vui lòng chọn đơn vị áp dụng trước khi thêm từ danh mục hệ thống.', 'warning');
     return;
   }
 
-  await salaryService.bulkImport({ systemIds, organizationId });
+  await salaryService.bulkImport({ SystemIds: systemIds, OrganizationId: organizationId });
   await salaryStore.fetchSalaryCompositions();
   toast.show(`Đã thêm ${systemIds.length} thành phần vào danh sách sử dụng.`, 'success');
   router.push('/salary-composition');
@@ -312,6 +348,9 @@ const importSystemRows = async (rows) => {
 const handleFilterChange = ({ id, value }) => {
   if (id === 'type') {
     selectedType.value = value;
+  } else if (id === 'unit') {
+    selectedOrganizationId.value = value;
+    salaryStore.setFilter('unit', value);
   }
   const filter = toolbarFilters.value.find((x) => x.id === id);
   if (filter) filter.modelValue = value;
@@ -368,7 +407,14 @@ const handleSelect = () => {
 watch([searchText, selectedType], resetGridState);
 watch(() => pagination.pageSize, resetGridState);
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    await loadOrganizations();
+  } catch (error) {
+    console.error('[SystemDictionary] load organizations error:', error);
+    toast.show('Không thể tải danh sách đơn vị áp dụng. Vui lòng thử lại.', 'error');
+  }
+
   salaryStore.fetchSystemComponents().catch(() => {
     toast.show('Không thể tải danh mục hệ thống. Vui lòng thử lại.', 'error');
   });

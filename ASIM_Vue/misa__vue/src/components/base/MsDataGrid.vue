@@ -20,6 +20,7 @@
           @row-click="$emit('row-click', $event)"
           @selection-changed="$emit('selection-changed', $event)"
           @cell-hover-changed="handleCellHoverChanged"
+          @option-changed="handleOptionChanged"
         >
         <!-- Loading overlay -->
         <DxLoadPanel :enabled="true" :visible="loading" />
@@ -29,6 +30,7 @@
 
         <!-- Scrolling mode -->
         <DxScrolling v-if="scrolling" v-bind="scrolling" />
+        <DxColumnFixing :enabled="allowColumnFixing" />
 
         <!--
           Render các cột từ mảng columns.
@@ -42,6 +44,7 @@
             :min-width="col.minWidth"
             :max-width="col.maxWidth"
             :fixed="col.fixed"
+            :fixed-position="col.fixedPosition || undefined"
             :alignment="col.alignment || 'left'"
             :cell-template="col.cellTemplate || undefined"
             :header-cell-template="col.headerCellTemplate || undefined"
@@ -119,6 +122,7 @@ import {
   DxPaging,
   DxPager,
   DxLoadPanel,
+  DxColumnFixing,
 } from 'devextreme-vue/data-grid';
 import MsPager from './MsPager.vue';
 
@@ -216,6 +220,11 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  /** Cho phép ghim cột bằng DevExtreme column fixing */
+  allowColumnFixing: {
+    type: Boolean,
+    default: true,
+  },
   /** Hiển thị highlight khi hover dòng */
   hoverStateEnabled: {
     type: Boolean,
@@ -307,7 +316,13 @@ const props = defineProps({
 });
 
 // ── Emits ──────────────────────────────────────────────────
-defineEmits(['row-click', 'selection-changed', 'update:pageSize', 'update:currentPage']);
+const emit = defineEmits([
+  'row-click',
+  'selection-changed',
+  'update:pageSize',
+  'update:currentPage',
+  'columns-state-changed',
+]);
 
 // ── Computed ───────────────────────────────────────────────
 
@@ -414,6 +429,37 @@ const handleCellHoverChanged = (e) => {
       scheduleHoverClear();
     }
   }
+};
+
+const collectColumnState = (component) => {
+  return visibleColumns.value.map((col, index) => {
+    const option = component?.columnOption?.(col.dataField) || {};
+    const fixedPosition = option.fixedPosition || col.fixedPosition || 'left';
+    const width = option.width ?? option.visibleWidth ?? col.width;
+
+    return {
+      dataField: col.dataField,
+      width,
+      visible: option.visible !== false,
+      fixed: !!option.fixed,
+      fixedPosition,
+      visibleIndex: Number.isFinite(option.visibleIndex) ? option.visibleIndex : index,
+    };
+  });
+};
+
+const handleOptionChanged = (e) => {
+  if (!e?.fullName?.startsWith?.('columns[')) {
+    return;
+  }
+
+  const persistableChanges = ['.visibleIndex', '.width', '.visibleWidth', '.visible', '.fixed', '.fixedPosition'];
+  if (!persistableChanges.some((key) => e.fullName.endsWith(key))) {
+    return;
+  }
+
+  const state = collectColumnState(e.component);
+  emit('columns-state-changed', state);
 };
 
 onBeforeUnmount(() => {

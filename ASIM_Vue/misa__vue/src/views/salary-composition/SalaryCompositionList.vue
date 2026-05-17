@@ -88,6 +88,7 @@
           ref="gridRef"
           @row-click="handleRowClick"
           @selection-changed="handleSelectionChanged"
+          @columns-state-changed="handleColumnsStateChanged"
         >
           <template #nameHeaderTemplate="{ data }">
             <div class="header-pin-cell flex align-center">
@@ -163,6 +164,13 @@
         >
           <div class="sys-import-body">
             <div class="sys-import-toolbar flex align-center">
+              <div class="sys-import-unit">
+                <MsSelect
+                  v-model="systemImportOrganizationId"
+                  :options="organizationSelectOptions"
+                  placeholder="Chọn đơn vị áp dụng"
+                />
+              </div>
               <div class="sys-import-search">
                 <MsInput
                   v-model="systemImportSearch"
@@ -202,7 +210,7 @@
 
           <template #footer>
             <MsButton type="outline" class="m-r-8" @click="closeSystemImportModal">Hủy bỏ</MsButton>
-            <MsButton type="primary" :disabled="systemImportSelectedRows.length === 0" @click="submitSystemImport">Đồng ý</MsButton>
+            <MsButton type="primary" :disabled="systemImportSelectedRows.length === 0 || !systemImportOrganizationId" @click="submitSystemImport">Đồng ý</MsButton>
           </template>
         </MsModal>
 
@@ -243,7 +251,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from '@/composables/useToast';
 
@@ -284,6 +292,21 @@ const systemImportType = ref('Tất cả thành phần');
 const systemImportSelectedRows = ref([]);
 const systemImportGridRef = ref(null);
 const systemImportPagination = ref({ currentPage: 1, pageSize: 25 });
+const systemImportOrganizationId = ref('');
+const organizationRows = ref([]);
+
+const organizationNameLookup = computed(() => {
+  const lookup = new Map();
+  (organizationRows.value || []).forEach((org) => {
+    const id = org?.organizationId ?? org?.OrganizationId;
+    const code = org?.organizationCode ?? org?.OrganizationCode;
+    const name = org?.organizationName ?? org?.OrganizationName;
+
+    if (id) lookup.set(String(id), name || '');
+    if (code) lookup.set(String(code), name || '');
+  });
+  return lookup;
+});
 
 const systemImportTypeOptions = computed(() => {
   const base = ['Tất cả thành phần'];
@@ -293,6 +316,39 @@ const systemImportTypeOptions = computed(() => {
   });
   return [...base, ...Array.from(types)];
 });
+
+const organizationSelectOptions = computed(() => [
+  { value: '', label: 'Chọn đơn vị áp dụng' },
+  ...organizationRows.value.map((org) => {
+    const id = org?.organizationId ?? org?.OrganizationId;
+    const code = org?.organizationCode ?? org?.OrganizationCode;
+    const name = org?.organizationName ?? org?.OrganizationName;
+    return { value: id, label: `${code} - ${name}` };
+  }),
+]);
+
+const getDefaultOrganizationId = () => {
+  const currentFilterUnit = salaryStore.filters.unit;
+  if (currentFilterUnit) return currentFilterUnit;
+
+  const firstOrg = organizationRows.value[0];
+  return firstOrg?.organizationId ?? firstOrg?.OrganizationId ?? '';
+};
+
+const loadOrganizations = async () => {
+  const orgRes = await organizationService.getAll();
+  const orgService = orgRes?.data;
+  const orgs = orgService?.Data ?? orgService?.data ?? orgService ?? orgRes ?? [];
+  organizationRows.value = Array.isArray(orgs) ? orgs : [];
+
+  const unitFilter = toolbarFilters.value.find(f => f.id === 'unit');
+  if (unitFilter) {
+    unitFilter.options = [
+      { value: '', label: R.OPTION_ALL_UNITS_FILTER },
+      ...organizationSelectOptions.value.filter((option) => option.value),
+    ];
+  }
+};
 
 const systemImportColumns = computed(() => [
   { dataField: 'SalaryCompositionCode', caption: 'Mã thành phần', width: 220 },
@@ -355,6 +411,10 @@ const openSystemImportModal = async () => {
   systemImportType.value = 'Tất cả thành phần';
   systemImportSelectedRows.value = [];
   systemImportPagination.value = { currentPage: 1, pageSize: 25 };
+  if (!organizationRows.value.length) {
+    await loadOrganizations();
+  }
+  systemImportOrganizationId.value = getDefaultOrganizationId();
 
   await salaryStore.fetchSystemComponents();
 };
@@ -362,6 +422,7 @@ const openSystemImportModal = async () => {
 const closeSystemImportModal = () => {
   showSystemImportModal.value = false;
   systemImportSelectedRows.value = [];
+  systemImportOrganizationId.value = '';
   systemImportGridRef.value?.clearSelection?.();
 };
 
@@ -372,9 +433,9 @@ const handleSystemImportSelectionChanged = (e) => {
 const submitSystemImport = async () => {
   if (!systemImportSelectedRows.value.length) return;
 
-  const orgId = salaryStore.filters.unit;
+  const orgId = systemImportOrganizationId.value;
   if (!orgId) {
-    showInfoDialog('Vui lòng chọn đơn vị áp dụng trước khi thêm từ danh mục hệ thống.');
+    showInfoDialog('Vui lòng chọn đơn vị áp dụng trong cửa sổ thêm từ danh mục hệ thống.');
     return;
   }
 
@@ -480,6 +541,7 @@ const showColumnSettings = ref(false);
 // Column settings draft state
 const columnSettingsSearch = ref('');
 const columnVisibilityDraft = ref({});
+let columnConfigSaveTimer = null;
 
 const openColumnSettings = () => {
   // Snapshot current visibility
@@ -503,7 +565,7 @@ const filteredColumnOptions = computed(() => {
   return cols.filter((c) => (c.caption || '').toLowerCase().includes(q));
 });
 
-const saveColumnSettings = () => {
+const saveColumnSettings = async () => {
   const draft = columnVisibilityDraft.value || {};
   salaryStore.columns.forEach((c) => {
     const nextVisible = !!draft[c.dataField];
@@ -511,7 +573,27 @@ const saveColumnSettings = () => {
       salaryStore.updateColumnVisibility(c.dataField, nextVisible);
     }
   });
+  try {
+    await salaryStore.saveGridConfigs();
+  } catch (error) {
+    console.error('[SalaryCompositionList] save column settings error:', error);
+    toast.show('Không thể lưu cấu hình cột. Vui lòng thử lại.', 'error');
+  }
   closeColumnSettings();
+};
+
+const scheduleColumnConfigSave = () => {
+  clearTimeout(columnConfigSaveTimer);
+  columnConfigSaveTimer = setTimeout(() => {
+    salaryStore.saveGridConfigs().catch((error) => {
+      console.error('[SalaryCompositionList] auto save column config error:', error);
+    });
+  }, 500);
+};
+
+const handleColumnsStateChanged = (state) => {
+  salaryStore.applyColumnRuntimeState(state);
+  scheduleColumnConfigSave();
 };
 
 const pageSize = computed({
@@ -650,26 +732,41 @@ watch(searchText, (newVal) => {
 
 // Rows displayed in grid (client-side narrowing based on applied filter field selection)
 const displayRows = computed(() => {
-  return Array.isArray(salaryStore.salaryCompositions) ? salaryStore.salaryCompositions : [];
+  const rows = Array.isArray(salaryStore.salaryCompositions) ? salaryStore.salaryCompositions : [];
+
+  return rows.map((row) => {
+    const appliedUnit = row?.AppliedUnit
+      || row?.OrganizationName
+      || row?.organizationName
+      || organizationNameLookup.value.get(String(row?.OrganizationId ?? row?.organizationId ?? ''))
+      || '';
+
+    return {
+      ...row,
+      AppliedUnit: appliedUnit,
+      OrganizationName: row?.OrganizationName || row?.organizationName || appliedUnit,
+    };
+  });
 });
 
 onMounted(async () => {
   try {
-    const orgRes = await organizationService.getAll();
-    const orgService = orgRes?.data;
-    const orgs = orgService?.Data ?? orgService?.data ?? orgService ?? orgRes ?? [];
-    const unitFilter = toolbarFilters.value.find(f => f.id === 'unit');
-    if (unitFilter && Array.isArray(orgs)) {
-      unitFilter.options = [
-        { value: '', label: R.OPTION_ALL_UNITS_FILTER },
-        ...orgs.map(o => ({ value: o.organizationId, label: o.organizationName }))
-      ];
-    }
+    await salaryStore.fetchGridConfigs();
+  } catch (error) {
+    console.error('Lỗi khi tải cấu hình cột:', error);
+  }
+
+  try {
+    await loadOrganizations();
   } catch (error) {
     console.error('Lỗi khi tải danh sách tổ chức:', error);
   }
 
   salaryStore.fetchSalaryCompositions();
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(columnConfigSaveTimer);
 });
 
 
@@ -678,12 +775,8 @@ onMounted(async () => {
 const gridColumns = computed(() => {
   const cols = salaryStore.visibleColumns.map((col) => {
     const newCol = { ...col, alignment: 'left' };
-    
-    if (col.dataField === 'SalaryCompositionCode') {
-      newCol.fixed = true;
-    }
-    if (col.dataField === 'SalaryCompositionName') {
-      newCol.fixed = true;
+
+    if (col.dataField === 'SalaryCompositionName' && col.fixed) {
       newCol.headerCellTemplate = 'nameHeaderTemplate';
     }
     
@@ -1023,6 +1116,10 @@ const refreshData = () => {
 }
 
 .sys-import-search {
+  width: 320px;
+}
+
+.sys-import-unit {
   width: 320px;
 }
 

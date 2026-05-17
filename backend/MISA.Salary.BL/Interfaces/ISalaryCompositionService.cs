@@ -14,7 +14,7 @@ namespace MISA.Salary.BL.Interfaces
     public interface ISalaryCompositionService : IBaseService<SalaryComposition>
     {
         /// <summary>
-        /// Lấy danh sách phân trang với lọc theo Status và OrganizationId
+        /// Lấy danh sách phân trang với lọc theo Status và OrganizationId.
         /// </summary>
         Task<ServiceResult> GetPagingWithFilterAsync(
             int skip, 
