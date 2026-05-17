@@ -47,7 +47,7 @@
                     v-model="formData.SalaryCompositionName"
                     :placeholder="R.PLACEHOLDER_NAME"
                     :error="errors.SalaryCompositionName"
-                    style="width: 100%;"
+                    class="wide-control"
                   />
                 </div>
               </div>
@@ -60,7 +60,7 @@
                     v-model="formData.SalaryCompositionCode"
                     :placeholder="R.PLACEHOLDER_CODE"
                     :error="errors.SalaryCompositionCode"
-                    style="width: 300px;"
+                    class="wide-control"
                   />
                 </div>
               </div>
@@ -73,7 +73,7 @@
                     v-model="formData.OrganizationId"
                     :options="organizationOptions"
                     :error="errors.OrganizationId"
-                    style="width: 100%;"
+                    class="wide-control"
                   />
                 </div>
               </div>
@@ -86,7 +86,7 @@
                     v-model="formData.SalaryCompositionType"
                     :options="['Lương', 'Phụ cấp', 'Giảm trừ', 'Bảo hiểm - Công đoàn', 'Thuế TNCN', 'Chấm công', 'Thông tin nhân viên']"
                     :error="errors.SalaryCompositionType"
-                    style="width: 300px;"
+                    class="short-control"
                   />
                 </div>
               </div>
@@ -99,7 +99,7 @@
                     v-model="formData.Nature"
                     :options="['Thu nhập', 'Khấu trừ', 'Khác']"
                     :error="errors.Nature"
-                    style="width: 180px;"
+                    class="short-control"
                   />
                   <MsRadio
                     v-if="formData.Nature === 'Thu nhập'"
@@ -121,9 +121,8 @@
                   <MsFormula 
                     v-model="formData.Quota"
                     placeholder="Tự động gợi ý công thức và tham số khi gõ"
-                    style="min-height: 80px;"
+                    :rows="3"
                   />
-                  <div class="formula-helper-text m-t-4">Tự động gợi ý công thức và tham số khi gõ</div>
                   <div class="m-t-8">
                     <MsCheckbox
                       v-model="formData.AllowOverQuota"
@@ -140,7 +139,7 @@
                   <MsSelect
                     v-model="formData.ValueType"
                     :options="['Tiền tệ', 'Số', 'Phần trăm', 'Chuỗi']"
-                    style="width: 200px;"
+                    class="short-control"
                   />
                 </div>
               </div>
@@ -160,7 +159,7 @@
                       <MsSelect
                         v-model="formData.AutoSumScope"
                         :options="['Trong cùng đơn vị công tác', 'Toàn công ty']"
-                        style="width: 300px;"
+                        class="short-control"
                       />
                     </div>
                   </div>
@@ -177,8 +176,8 @@
                         v-model="formData.Value" 
                         placeholder="Tự động gợi ý công thức và tham số khi gõ"
                         :error="errors.Value"
+                        :rows="3"
                       />
-                      <div class="formula-helper-text m-t-4">Tự động gợi ý công thức và tham số khi gõ</div>
                     </div>
                   </div>
                   <div class="p-v-8">
@@ -209,7 +208,7 @@
                     v-model="formData.Description"
                     type="text"
                     :error="errors.Description"
-                    style="width: 100%;"
+                    class="wide-control"
                   />
                 </div>
               </div>
@@ -641,44 +640,24 @@ const validate = () => {
   return Object.keys(newErrors).length === 0;
 };
 
-const handleSave = async () => {
-  if (!validate()) {
-    return;
-  }
+const resetFormForNextInput = () => {
+  salaryStore.setNewItem();
+  formData.value = { ...salaryStore.currentItem };
+  errors.value = {};
+  setInitialSnapshot();
 
-  const ok = await toast.confirm({
-    message: isEdit.value ? 'Bạn có chắc chắn muốn lưu thay đổi không?' : 'Bạn có chắc chắn muốn thêm mới và lưu không?',
-    cancelLabel: 'Hủy',
-    okLabel: 'Lưu',
-  });
-  if (!ok) return;
-
-  const success = await salaryStore.saveSalaryComposition(
-    formData.value,
-    isEdit.value
-  );
-
-  if (success) {
-    toast.show({
-      message: isEdit.value ? 'Lưu thay đổi thành công.' : (isClone.value ? 'Nhân bản thành công.' : 'Thêm mới thành công.'),
-      type: 'success',
-    });
-    router.push('/salary-composition');
-  } else {
-    const hasFieldErrors = applyBackendErrors(salaryStore.lastError?.errors);
-    const msg = getSaveErrorMessage();
-    toast.show({ message: msg, type: 'error' });
-    if (!hasFieldErrors) showInfoDialog(msg);
-  }
+  setTimeout(() => {
+    nameInputRef.value?.focus();
+  }, 100);
 };
 
-const handleSaveAndAdd = async () => {
+const saveAndResetForNext = async ({ confirmMessage }) => {
   if (!validate()) {
     return;
   }
 
   const ok = await toast.confirm({
-    message: 'Bạn có chắc chắn muốn lưu và thêm tiếp không?',
+    message: confirmMessage,
     cancelLabel: 'Hủy',
     okLabel: 'Lưu',
   });
@@ -690,15 +669,8 @@ const handleSaveAndAdd = async () => {
   );
 
   if (success) {
-    toast.show({ message: 'Lưu thành công. Bạn có thể nhập bản ghi mới.', type: 'success' });
-    salaryStore.setNewItem();
-    formData.value = { ...salaryStore.currentItem };
-    errors.value = {};
-    setInitialSnapshot();
-
-    setTimeout(() => {
-      nameInputRef.value?.focus();
-    }, 100);
+    toast.show({ message: 'Đã thêm thành công.', type: 'success' });
+    resetFormForNextInput();
   } else {
     const hasFieldErrors = applyBackendErrors(salaryStore.lastError?.errors);
     const msg = getSaveErrorMessage();
@@ -706,21 +678,67 @@ const handleSaveAndAdd = async () => {
     if (!hasFieldErrors) showInfoDialog(msg);
   }
 };
+
+const handleSave = async () => {
+  if (!isEdit.value) {
+    await saveAndResetForNext({
+      confirmMessage: 'Bạn có chắc chắn muốn thêm mới và lưu không?',
+    });
+    return;
+  }
+
+  if (!validate()) {
+    return;
+  }
+
+  const ok = await toast.confirm({
+    message: 'Bạn có chắc chắn muốn lưu thay đổi không?',
+    cancelLabel: 'Hủy',
+    okLabel: 'Lưu',
+  });
+  if (!ok) return;
+
+  const success = await salaryStore.saveSalaryComposition(
+    formData.value,
+    true
+  );
+
+  if (success) {
+    toast.show({ message: 'Lưu thay đổi thành công.', type: 'success' });
+    router.push('/salary-composition');
+  } else {
+    const hasFieldErrors = applyBackendErrors(salaryStore.lastError?.errors);
+    const msg = getSaveErrorMessage();
+    toast.show({ message: msg, type: 'error' });
+    if (!hasFieldErrors) showInfoDialog(msg);
+  }
+};
+
+const handleSaveAndAdd = async () => {
+  await saveAndResetForNext({
+    confirmMessage: 'Bạn có chắc chắn muốn lưu và thêm tiếp không?',
+  });
+};
 </script>
 
 <style scoped>
 .salary-detail-container {
+  --salary-page-bg: #f1f2f1;
+  --salary-panel-bg: #fff;
+  --salary-control-bg: #f5f6f7;
+  --salary-control-border: #d9dde3;
+
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  background-color: #efefef;
+  background-color: var(--salary-page-bg);
 }
 
 .main-view-container {
   width: 100%;
-  padding: 0 16px 16px 24px;
+  padding: 0px 32px 32px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -729,11 +747,11 @@ const handleSaveAndAdd = async () => {
 }
 
 .block-layout {
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  background-color: var(--salary-panel-bg);
+  border-radius: 5px;
+  box-shadow: none;
   overflow: hidden;
-  border: 1px solid #e0e0e0;
+  border: none;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -750,8 +768,8 @@ const handleSaveAndAdd = async () => {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: 24px 32px;
-  background-color: #fff;
+  padding: 42px 40px 28px;
+  background-color: var(--salary-panel-bg);
 }
 
 .detail-form-container {
@@ -760,16 +778,16 @@ const handleSaveAndAdd = async () => {
 
 .form-row {
   display: flex;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   align-items: flex-start;
 }
 
 .form-label {
   width: 200px;
   min-width: 200px;
-  padding-top: 8px;
+  padding-top: 7px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   color: #111;
 }
 
@@ -789,7 +807,73 @@ const handleSaveAndAdd = async () => {
 
 .form-control {
   flex: 1;
-  max-width: 600px;
+  max-width: 840px;
+}
+
+.wide-control {
+  width: 100%;
+}
+
+.short-control {
+  width: 316px;
+}
+
+.form-control :deep(.ms-input-wrapper),
+.form-control :deep(.ms-select-display) {
+  height: 32px;
+  background-color: var(--salary-control-bg);
+  border-color: var(--salary-control-border);
+  border-radius: 7px;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control :deep(.ms-input-wrapper:hover),
+.form-control :deep(.ms-select-display:hover) {
+  background-color: var(--salary-control-bg);
+  border-color: #9fd7b5;
+}
+
+.form-control :deep(.ms-input-wrapper:focus-within),
+.form-control :deep(.is-open .ms-select-display) {
+  background-color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px rgba(44, 160, 28, 0.12);
+}
+
+.form-control :deep(.formula-editor-shell) {
+  background-color: var(--salary-control-bg);
+  border-color: var(--salary-control-border);
+  border-radius: 7px;
+}
+
+.form-control :deep(.formula-editor-shell:hover) {
+  border-color: #9fd7b5;
+}
+
+.form-control :deep(.formula-editor-shell.focused) {
+  background-color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px rgba(44, 160, 28, 0.12);
+}
+
+.form-control :deep(.prism-editor__container),
+.form-control :deep(.prism-editor__textarea) {
+  background-color: transparent !important;
+}
+
+.form-control :deep(.ms-input::placeholder) {
+  color: #c4c8cf;
+  opacity: 1;
+}
+
+.form-control :deep(.ms-radio-group) {
+  padding: 6px 0;
+  gap: 32px;
+}
+
+.form-control :deep(.ms-radio-label),
+.form-control :deep(.ms-checkbox-label) {
+  font-size: 13px;
 }
 
 .p-b-8  { padding-bottom: 8px; }

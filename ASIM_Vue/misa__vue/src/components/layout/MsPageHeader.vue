@@ -46,8 +46,8 @@ defineEmits(['back']);
 }
 
 .btn-back {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
   border-radius: 50%;
   display: flex;

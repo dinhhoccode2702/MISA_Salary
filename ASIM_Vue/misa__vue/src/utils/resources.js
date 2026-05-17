@@ -3,7 +3,7 @@
 // ============================================================
 export const SALARY_COMPOSITION = {
   PAGE_TITLE: 'Thành phần lương',
-  PAGE_TITLE_ADD: 'Thêm thành phần lương',
+  PAGE_TITLE_ADD: 'Thêm thành phần',
   PAGE_TITLE_EDIT: 'Sửa thành phần lương',
   PAGE_TITLE_CLONE: 'Nhân bản thành phần lương',
   SYSTEM_DICT_TITLE: 'Danh mục thành phần lương của hệ thống',

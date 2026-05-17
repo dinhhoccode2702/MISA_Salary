@@ -72,14 +72,34 @@ const REVERSE_MAP_DATA_TYPE = {
   'Chuỗi': 5,
 };
 
+const toSnakeCase = (value) =>
+  String(value || '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+
+const normalizeFieldKey = (value) => String(value || '').replace(/_/g, '').toLowerCase();
+const normalizeColumnKey = normalizeFieldKey;
+
 const getField = (item, pascalName) => {
+  if (!item) return undefined;
+
   const camelName = pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
-  return item?.[camelName] ?? item?.[pascalName];
+  const snakeName = toSnakeCase(pascalName);
+  const directValue = item[camelName] ?? item[pascalName] ?? item[snakeName];
+  if (directValue !== undefined) return directValue;
+
+  const normalizedName = normalizeFieldKey(pascalName);
+  const matchedKey = Object.keys(item).find((key) => normalizeFieldKey(key) === normalizedName);
+  return matchedKey ? item[matchedKey] : undefined;
+};
+
+const getFirstField = (item, names) => {
+  for (const name of names) {
+    const value = getField(item, name);
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
 };
 
 const GRID_CONFIG_TABLE_NAME = 'salary_composition_list';
-
-const normalizeColumnKey = (value) => String(value || '').replace(/_/g, '').toLowerCase();
 
 const toFixedStatus = (column) => {
   if (!column.fixed) return 0;
@@ -93,6 +113,22 @@ const fromFixedStatus = (status) => {
   return { fixed: false, fixedPosition: undefined };
 };
 
+const normalizePinnedPrefix = (columns) => {
+  const pinAnchorIndex = columns.reduce((lastIndex, column, index) => {
+    return column.fixed ? index : lastIndex;
+  }, -1);
+
+  return columns.map((column, index) => {
+    const isInPinnedPrefix = pinAnchorIndex >= 0 && index <= pinAnchorIndex;
+    return {
+      ...column,
+      fixed: isInPinnedPrefix,
+      fixedPosition: isInPinnedPrefix ? 'left' : undefined,
+      pinAnchor: pinAnchorIndex >= 0 && index === pinAnchorIndex,
+    };
+  });
+};
+
 const unwrapServiceResult = (response) => {
   const payload = response?.data ?? response;
   if (payload?.isSuccess === false || payload?.IsSuccess === false) {
@@ -103,8 +139,19 @@ const unwrapServiceResult = (response) => {
   return payload?.data ?? payload?.Data ?? payload;
 };
 
+const isTimeoutError = (error) =>
+  error?.code === 'ECONNABORTED' ||
+  String(error?.message || '').toLowerCase().includes('timeout');
+
 const mapSalaryComposition = (item) => {
-  const rawFormula = (getField(item, 'SalaryCompositionValueFormula') ?? '').toString().trim();
+  const rawValue = getFirstField(item, [
+    'SalaryCompositionValueFormula',
+    'SalaryCompositionValue',
+    'ValueFormula',
+    'Value',
+    'GiaTri',
+  ]);
+  const rawFormula = (rawValue ?? '').toString().trim();
   const formulaExpression = rawFormula.startsWith('=') ? rawFormula.slice(1) : rawFormula;
   const activeStatus = Number(getField(item, 'SalaryCompositionActiveStatus'));
   const systemStatus = Number(getField(item, 'SalaryCompositionIsSystemStatus'));
@@ -133,7 +180,7 @@ const mapSalaryComposition = (item) => {
     AllowOverQuota: Number(getField(item, 'SalaryCompositionAllowExceedStatus')) === 1,
     ValueType: MAP_DATA_TYPE[dataType] || 'Tiền tệ',
     ValueSource: valueType === 1 ? 'AutoSum' : (valueType === 3 ? 'Constant' : 'Formula'),
-    Value: getField(item, 'SalaryCompositionValueFormula') || '',
+    Value: rawValue ?? '',
     Description: getField(item, 'SalaryCompositionDescription') || '',
     DisplayOnPayslip: payslipStatus === 1 ? 'Có' : (payslipStatus === 2 ? 'Khác 0' : 'Không'),
     Source: isSystem ? 'Hệ thống' : 'Tự thêm',
@@ -168,15 +215,15 @@ export const useSalaryStore = defineStore('salary', {
     loading: false,
     lastError: null,
     columns: [
-      { dataField: 'SalaryCompositionCode', caption: 'Mã thành phần', width: 250, minWidth: 100, maxWidth: 300, visible: true, fixed: true, fixedPosition: 'left', sortOrder: 1 },
-      { dataField: 'SalaryCompositionName', caption: 'Tên thành phần', width: 350, minWidth: 150, maxWidth: 450, visible: true, fixed: true, fixedPosition: 'left', sortOrder: 2 },
-      { dataField: 'AppliedUnit', caption: 'Đơn vị áp dụng', width: 200, minWidth: 120, maxWidth: 300, visible: true },
-      { dataField: 'SalaryCompositionType', caption: 'Loại thành phần', width: 250, minWidth: 120, maxWidth: 350, visible: true },
-      { dataField: 'Nature', caption: 'Tính chất', width: 200, minWidth: 100, maxWidth: 300, visible: true, cellTemplate: 'natureTemplate' },
-      { dataField: 'KieuGiaTri', caption: 'Kiểu giá trị', width: 150, minWidth: 100, maxWidth: 200, visible: true },
-      { dataField: 'GiaTri', caption: 'Giá trị', minWidth: 260, width: 360, visible: true, cellTemplate: 'valueTemplate' },
-      { dataField: 'NguonTao', caption: 'Nguồn tạo', width: 140, minWidth: 120, maxWidth: 200, visible: true },
-      { dataField: 'Status', caption: 'Trạng thái', width: 160, minWidth: 130, maxWidth: 200, visible: true, cellTemplate: 'statusTemplate' },
+      { dataField: 'SalaryCompositionCode', caption: 'Mã thành phần', width: 250, minWidth: 100, maxWidth: 300, visible: true, fixed: false, sortOrder: 1, visibleIndex: 0 },
+      { dataField: 'SalaryCompositionName', caption: 'Tên thành phần', width: 350, minWidth: 150, maxWidth: 450, visible: true, fixed: false, sortOrder: 2, visibleIndex: 1 },
+      { dataField: 'AppliedUnit', caption: 'Đơn vị áp dụng', width: 200, minWidth: 120, maxWidth: 300, visible: true, fixed: false, sortOrder: 3, visibleIndex: 2 },
+      { dataField: 'SalaryCompositionType', caption: 'Loại thành phần', width: 250, minWidth: 120, maxWidth: 350, visible: true, fixed: false, sortOrder: 4, visibleIndex: 3 },
+      { dataField: 'Nature', caption: 'Tính chất', width: 200, minWidth: 100, maxWidth: 300, visible: true, fixed: false, sortOrder: 5, visibleIndex: 4, cellTemplate: 'natureTemplate' },
+      { dataField: 'KieuGiaTri', caption: 'Kiểu giá trị', width: 150, minWidth: 100, maxWidth: 200, visible: true, fixed: false, sortOrder: 6, visibleIndex: 5 },
+      { dataField: 'GiaTri', caption: 'Giá trị', minWidth: 260, width: 360, visible: true, fixed: false, sortOrder: 7, visibleIndex: 6, cellTemplate: 'valueTemplate' },
+      { dataField: 'NguonTao', caption: 'Nguồn tạo', width: 140, minWidth: 120, maxWidth: 200, visible: true, fixed: false, sortOrder: 8, visibleIndex: 7 },
+      { dataField: 'Status', caption: 'Trạng thái', width: 160, minWidth: 130, maxWidth: 200, visible: true, fixed: false, sortOrder: 9, visibleIndex: 8, cellTemplate: 'statusTemplate' },
     ],
     currentItem: { ...DEFAULT_ITEM },
     pagination: {
@@ -236,6 +283,21 @@ export const useSalaryStore = defineStore('salary', {
       if (col) col.visible = visible;
     },
 
+    pinColumn(dataField) {
+      const pinAnchorIndex = this.columns.findIndex((column) => column.dataField === dataField);
+      if (pinAnchorIndex === -1) return;
+
+      this.columns = this.columns.map((column, index) => {
+        const isInPinnedPrefix = index <= pinAnchorIndex;
+        return {
+          ...column,
+          fixed: isInPinnedPrefix,
+          fixedPosition: isInPinnedPrefix ? 'left' : undefined,
+          pinAnchor: index === pinAnchorIndex,
+        };
+      });
+    },
+
     reorderColumns(newColumns) {
       this.columns = newColumns;
     },
@@ -250,32 +312,50 @@ export const useSalaryStore = defineStore('salary', {
         ])
       );
 
-      this.columns = this.columns
+      const nextColumns = this.columns
         .map((column, index) => {
           const config = configByColumn.get(normalizeColumnKey(column.dataField));
-          if (!config) return { ...column, sortOrder: column.sortOrder ?? index + 1 };
+          if (!config) {
+            const sortOrder = column.sortOrder ?? index + 1;
+            return { ...column, sortOrder, visibleIndex: sortOrder - 1 };
+          }
 
           const fixedState = fromFixedStatus(getField(config, 'GridConfigFixedStatus'));
+          const sortOrder = Number(getField(config, 'GridConfigSortOrder')) || index + 1;
           return {
             ...column,
             width: Number(getField(config, 'GridConfigWidthSize')) || column.width,
             visible: Number(getField(config, 'GridConfigVisibleStatus')) !== 0,
             ...fixedState,
-            sortOrder: Number(getField(config, 'GridConfigSortOrder')) || index + 1,
+            sortOrder,
+            visibleIndex: sortOrder - 1,
           };
         })
         .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+
+      this.columns = normalizePinnedPrefix(nextColumns).map((column, index) => ({
+        ...column,
+        sortOrder: index + 1,
+        visibleIndex: index,
+      }));
     },
 
     applyColumnRuntimeState(states) {
       if (!Array.isArray(states) || states.length === 0) return;
 
+      const visibleOrderByField = new Map(
+        [...states]
+          .sort((a, b) => (a.visibleIndex ?? 9999) - (b.visibleIndex ?? 9999))
+          .map((state, index) => [state.dataField, index + 1])
+      );
       const stateByField = new Map(states.map((state) => [state.dataField, state]));
 
-      this.columns = this.columns
+      const nextColumns = this.columns
         .map((column, index) => {
           const state = stateByField.get(column.dataField);
-          if (!state) return { ...column, sortOrder: column.sortOrder ?? index + 1 };
+          if (!state) return { ...column, sortOrder: column.sortOrder ?? index + 1, visibleIndex: column.visibleIndex ?? index };
+
+          const sortOrder = visibleOrderByField.get(column.dataField) ?? column.sortOrder ?? index + 1;
 
           return {
             ...column,
@@ -283,10 +363,17 @@ export const useSalaryStore = defineStore('salary', {
             visible: state.visible !== false,
             fixed: !!state.fixed,
             fixedPosition: state.fixed ? (state.fixedPosition || 'left') : undefined,
-            sortOrder: Number.isFinite(state.visibleIndex) ? state.visibleIndex + 1 : column.sortOrder ?? index + 1,
+            sortOrder,
+            visibleIndex: sortOrder - 1,
           };
         })
         .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+
+      this.columns = normalizePinnedPrefix(nextColumns).map((column, index) => ({
+        ...column,
+        sortOrder: index + 1,
+        visibleIndex: index,
+      }));
     },
 
     async fetchGridConfigs() {
@@ -387,9 +474,38 @@ export const useSalaryStore = defineStore('salary', {
       }
     },
 
+    async verifySaveAfterTimeout(payload, isEdit) {
+      try {
+        if (isEdit && payload.salaryCompositionId) {
+          const response = await salaryService.getById(payload.salaryCompositionId);
+          const data = unwrapServiceResult(response);
+          return !!getField(data, 'SalaryCompositionId');
+        }
+
+        const response = await salaryService.getPaging({
+          page: 1,
+          pageSize: 10,
+          search: payload.salaryCompositionCode,
+          organizationId: payload.organizationId,
+        });
+        const { items } = this._normalizePagingResponse(response);
+        return items.some((item) => {
+          const itemCode = getField(item, 'SalaryCompositionCode');
+          const itemOrgId = getField(item, 'OrganizationId');
+          return String(itemCode || '') === String(payload.salaryCompositionCode || '') &&
+            String(itemOrgId || '') === String(payload.organizationId || '');
+        });
+      } catch (verifyError) {
+        console.warn('[salaryStore] could not verify save timeout:', verifyError);
+        return false;
+      }
+    },
+
     async saveSalaryComposition(item, isEdit = false) {
       this.loading = true;
       this.lastError = null;
+      let writeSucceeded = false;
+      let payload = null;
       try {
         let natureType = 5;
         if (item.Nature === 'Thu nhập') {
@@ -398,7 +514,7 @@ export const useSalaryStore = defineStore('salary', {
           natureType = 3;
         }
 
-        const payload = {
+        payload = {
           salaryCompositionId: item.SalaryCompositionId || '00000000-0000-0000-0000-000000000000',
           organizationId: item.OrganizationId || null,
           salaryCompositionCode: item.SalaryCompositionCode,
@@ -409,7 +525,7 @@ export const useSalaryStore = defineStore('salary', {
           salaryCompositionAllowExceedStatus: item.AllowOverQuota ? 1 : 0,
           salaryCompositionDataType: REVERSE_MAP_DATA_TYPE[item.ValueType] || 1,
           salaryCompositionValueType: item.ValueSource === 'AutoSum' ? 1 : (item.ValueSource === 'Constant' ? 3 : 2),
-          salaryCompositionValueFormula: item.Value || '',
+          salaryCompositionValueFormula: item.Value ?? '',
           salaryCompositionDescription: item.Description || '',
           salaryCompositionPayslipStatus: item.DisplayOnPayslip === 'Có' ? 1 : (item.DisplayOnPayslip === 'Khác 0' ? 2 : 0),
           salaryCompositionIsSystemStatus: item.Source === 'Hệ thống' ? 1 : 0,
@@ -421,9 +537,33 @@ export const useSalaryStore = defineStore('salary', {
         } else {
           await salaryService.create(payload);
         }
-        await this.fetchSalaryCompositions();
+        writeSucceeded = true;
+
+        try {
+          await this.fetchSalaryCompositions();
+        } catch (refreshError) {
+          console.warn('[salaryStore] save succeeded but refresh failed:', refreshError);
+        }
+
         return true;
       } catch (error) {
+        if (writeSucceeded) {
+          console.warn('[salaryStore] save write succeeded but post-save step failed:', error);
+          return true;
+        }
+
+        if (isTimeoutError(error)) {
+          const verified = payload ? await this.verifySaveAfterTimeout(payload, isEdit) : false;
+          if (verified) {
+            try {
+              await this.fetchSalaryCompositions();
+            } catch (refreshError) {
+              console.warn('[salaryStore] verified timeout save but refresh failed:', refreshError);
+            }
+            return true;
+          }
+        }
+
         const serviceResult = error?.serviceResult ?? error?.response?.data ?? {};
         this.lastError = {
           status: error?.response?.status,

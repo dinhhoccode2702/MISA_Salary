@@ -78,6 +78,7 @@
           :columns="gridColumns"
           :loading="salaryStore.loading"
           height="100%"
+          check-style="tick"
           :selection="{ mode: 'multiple', showCheckBoxesMode: 'always', selectAllMode: 'allPages' }"
           :show-pager="true"
           :total="salaryStore.pagination.total"
@@ -90,10 +91,22 @@
           @selection-changed="handleSelectionChanged"
           @columns-state-changed="handleColumnsStateChanged"
         >
-          <template #nameHeaderTemplate="{ data }">
+          <template #pinHeaderTemplate="{ data }">
             <div class="header-pin-cell flex align-center">
               <span class="header-text">{{ data.column.caption }}</span>
-              <span class="ms-icon-base ms-icon--pin header-pin-icon m-l-4"></span>
+              <button
+                class="header-pin-button m-l-4"
+                :class="{
+                  'header-pin-button--pinned': isColumnInPinnedGroup(data.column.dataField),
+                  'header-pin-button--active': isPinAnchorColumn(data.column.dataField),
+                }"
+                :aria-label="`Ghim cột ${data.column.caption}`"
+                :title="`Ghim cột ${data.column.caption}`"
+                @mousedown.stop
+                @click.stop="handlePinColumn(data.column.dataField)"
+              >
+                <span class="ms-icon-base ms-icon--pin header-pin-icon"></span>
+              </button>
             </div>
           </template>
 
@@ -110,15 +123,14 @@
           </template>
 
           <template #statusTemplate="{ data }">
-            <div class="status-cell flex align-center">
-              <span
-                class="status-dot"
-                :class="{ 'status-dot--inactive': Number(data.row?.data?.StatusCode) === 0 || data.value === 'Ngừng theo dõi' }"
-              ></span>
-              <span
-                class="status-text"
-                :class="{ 'status-text--inactive': Number(data.row?.data?.StatusCode) === 0 || data.value === 'Ngừng theo dõi' }"
-              >{{ data.value }}</span>
+            <div class="status-cell">
+              <div
+                class="status-badge"
+                :class="{ 'status-badge--inactive': Number(data.row?.data?.StatusCode) === 0 || data.value === 'Ngừng theo dõi' }"
+              >
+                <span class="status-badge__dot"></span>
+                <span class="status-badge__text">{{ data.value }}</span>
+              </div>
             </div>
           </template>
 
@@ -194,6 +206,7 @@
                 :columns="systemImportColumns"
                 :loading="salaryStore.loading"
                 height="100%"
+                check-style="tick"
                 header-bg="#f4f5f8"
                 :show-column-lines="false"
                 :selection="{ mode: 'multiple', showCheckBoxesMode: 'always', selectAllMode: 'allPages' }"
@@ -596,6 +609,28 @@ const handleColumnsStateChanged = (state) => {
   scheduleColumnConfigSave();
 };
 
+const isColumnInPinnedGroup = (dataField) => {
+  const column = salaryStore.columns.find((item) => item.dataField === dataField);
+  return !!column?.fixed;
+};
+
+const isPinAnchorColumn = (dataField) => {
+  const column = salaryStore.columns.find((item) => item.dataField === dataField);
+  return !!column?.pinAnchor;
+};
+
+const handlePinColumn = async (dataField) => {
+  if (!dataField) return;
+  salaryStore.pinColumn(dataField);
+
+  try {
+    await salaryStore.saveGridConfigs();
+  } catch (error) {
+    console.error('[SalaryCompositionList] save pinned column error:', error);
+    toast.show('Không thể lưu cấu hình ghim cột. Vui lòng thử lại.', 'error');
+  }
+};
+
 const pageSize = computed({
   get: () => salaryStore.pagination.pageSize,
   set: (val) => {
@@ -617,7 +652,7 @@ const isActiveRow = (rowData) => Number(rowData?.StatusCode) !== 0 && rowData?.S
 const getRowActions = (rowData) => {
   const statusAction = isActiveRow(rowData)
     ? { key: 'stop', icon: 'stop', label: 'Ngừng theo dõi', variant: 'warning' }
-    : { key: 'follow', icon: 'stop', label: 'Theo dõi lại', variant: 'default' };
+    : { key: 'follow', icon: 'follow', label: 'Theo dõi lại', variant: 'success' };
 
   return [
     statusAction,
@@ -634,13 +669,7 @@ const selectionToolbarActions = [
 ];
 
 const openAddNewConfirm = () => {
-  toast.confirm({
-    message: 'Bạn có muốn thêm thành phần lương mới không?',
-    cancelLabel: 'Hủy',
-    okLabel: 'Đồng ý',
-  }).then((ok) => {
-    if (ok) router.push('/salary-composition/add');
-  });
+  router.push('/salary-composition/add');
 };
 
 /** Cấu hình filter dropdowns cho MsListToolbar */
@@ -775,10 +804,8 @@ onBeforeUnmount(() => {
 const gridColumns = computed(() => {
   const cols = salaryStore.visibleColumns.map((col) => {
     const newCol = { ...col, alignment: 'left' };
-
-    if (col.dataField === 'SalaryCompositionName' && col.fixed) {
-      newCol.headerCellTemplate = 'nameHeaderTemplate';
-    }
+    newCol.headerCellTemplate = 'pinHeaderTemplate';
+    newCol.cssClass = col.pinAnchor ? 'ms-grid-pin-anchor' : undefined;
     
     if (col.dataField === 'Nature') {
       newCol.cellTemplate = 'natureTemplate';
@@ -920,7 +947,7 @@ const refreshData = () => {
   overflow: hidden;
   background-color: #fff;
   border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  border-radius: 10px;
   position: relative;
 }
 
@@ -947,11 +974,52 @@ const refreshData = () => {
 
 .header-pin-cell {
   height: 100%;
+  gap: 4px;
+}
+
+.header-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-pin-button {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.72;
+  padding: 0;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.header-pin-button:hover,
+.header-pin-button--pinned {
+  background-color: #eaf7ef;
+  opacity: 1;
+}
+
+.header-pin-button--active {
+  background-color: #dff3e6;
+  box-shadow: inset 0 0 0 1px rgba(44, 160, 75, 0.28);
 }
 
 .header-pin-icon {
-  background-color: #888;
-  opacity: 0.6;
+  width: 16px;
+  height: 16px;
+  -webkit-mask: url('../../assets/img/ICON_V3_1-qvutYp_o.svg') no-repeat center;
+  -webkit-mask-position: -145px -82px;
+  background-color: var(--color-primary);
+}
+
+:deep(.dx-datagrid-headers .dx-header-row > td.ms-grid-pin-anchor),
+:deep(.dx-datagrid-rowsview .dx-row > td.ms-grid-pin-anchor) {
+  border-right: 2px solid var(--color-primary) !important;
 }
 
 .advanced-filter-panel {
@@ -1137,6 +1205,43 @@ const refreshData = () => {
 </style>
 
 <style scoped>
+/* Status badges (Đang theo dõi / Ngừng theo dõi) */
+.status-cell {
+  display: flex;
+  align-items: center;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(44,160,28,0.04);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.status-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.status-badge--inactive {
+  border-color: #f2994a; /* orange */
+  color: #f2994a;
+  background: rgba(242,153,74,0.06);
+}
+
+.status-badge--inactive .status-badge__dot {
+  background: #f2994a;
+}
+
 /* Formula & value rendering */
 .value-formula {
   font-weight: 500;

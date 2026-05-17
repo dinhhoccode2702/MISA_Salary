@@ -151,6 +151,12 @@
   margin: 0 2px;
 }
 
+.utility-icon > div {
+  flex-shrink: 0;
+  margin: 0 !important;
+  position: static;
+}
+
 .utility-icon:hover {
   background-color: #f5f5f5;
 }
@@ -177,8 +183,21 @@
 
 /* Icon Sprites */
 .icon-app-selector {
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+}
+
+.icon-app-selector:hover {
+  background-color: #f5f5f5;
+}
+
+.icon-app-selector::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
   background-image: url('../../assets/img/Icon.c487640.svg');
   background-position: -80px -80px;
 }
@@ -192,9 +211,6 @@
 
 .icon-bot-ai {
   background-image: url('../../assets/img/payroll_agent.86d4797.png');
-  position: absolute;
-  top: 5px;
-  right: 3px;
   background-size: cover;
   height: 24px;
   width: 24px;
@@ -219,7 +235,6 @@
 .icon-invite {
   width: 32px;
     height: 32px;
-    margin-right: 12px !important;
     margin-top: 0 !important;
     border-radius: 16px;
     background-position: center;
@@ -242,7 +257,6 @@ height: 24px;
       border-radius: 50%;
     cursor: pointer;
     width: 32px;
-    margin-right: 12px;
     height: 32px;
     font-size: 14px;
     background-repeat: no-repeat;
@@ -269,5 +283,4 @@ height: 24px;
     background-repeat: no-repeat;
 }
 </style>
-
 

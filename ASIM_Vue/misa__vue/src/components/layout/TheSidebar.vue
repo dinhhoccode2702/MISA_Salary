@@ -159,6 +159,15 @@ const navigateTo = (path) => {
   transition: background-color 0.2s;
 }
 
+.the-sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+}
+
+.the-sidebar.collapsed .nav-icon {
+  margin-right: 0;
+}
+
 .nav-item:hover .nav-icon {
   background-color: #cccccc; /* SÃ¡ng hÆ¡n khi hover */
 }

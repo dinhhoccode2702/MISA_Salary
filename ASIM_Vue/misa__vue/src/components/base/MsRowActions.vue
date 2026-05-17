@@ -105,12 +105,21 @@ defineEmits(['action']);
   background-color: #eb5757; /* Đỏ khi hover */
 }
 
+
 /* Warning: màu vàng (cho nút Ngừng theo dõi) */
 .action-btn--warning .action-icon {
   background-color: #f2c94c; /* Vàng mặc định */
 }
 .action-btn--warning:hover .action-icon {
   background-color: #f2994a; /* Cam-vàng khi hover */
+}
+
+.action-btn--success .action-icon {
+  background-color: #6b7280;
+}
+
+.action-btn--success:hover .action-icon {
+  background-color: var(--color-primary);
 }
 
 /* Kích thước icon trong action */

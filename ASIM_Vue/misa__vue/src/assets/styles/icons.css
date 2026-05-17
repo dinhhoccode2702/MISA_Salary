@@ -34,6 +34,7 @@
 .ms-icon-base {
   display: inline-block;
   flex-shrink: 0;
+  vertical-align: middle;
 
   /* webkit-mask: cắt hình từ sprite SVG */
   -webkit-mask-image: var(--icon-sprite);
@@ -251,6 +252,14 @@
 .ms-icon--stop {
   -webkit-mask-position: -220px -40px; /* Tọa độ giả định, cần chỉnh theo sprite */
   mask-position: -220px -40px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon theo doi lai */
+.ms-icon--follow {
+  -webkit-mask-position: -182px -42px; /* TODO: chinh toa do icon theo doi lai trong sprite */
+  mask-position: -182px -42px;
   width: 20px;
   height: 20px;
 }

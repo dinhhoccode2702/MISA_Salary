@@ -226,27 +226,25 @@ defineEmits([
 </script>
 
 <style scoped>
-/* â”€â”€ Container toolbar â”€â”€ */
+
 .ms-list-toolbar {
   padding: 12px 16px;
   gap: 12px;
-  border-bottom: 1px solid #f0f0f0; /* Viá»n má» phÃ¢n cÃ¡ch vá»›i grid */
+  border-bottom: 1px solid #f0f0f0;
   justify-content: space-between;
 }
 
-/* â”€â”€ BÃªn trÃ¡i â”€â”€ */
+
 .toolbar-left {
   gap: 10px;
   flex: 1;
 }
 
-/* Ã” search cá»‘ Ä‘á»‹nh chiá»u rá»™ng */
 .toolbar-search {
-  width: 240px;
+  width: 300px;
   flex-shrink: 0;
 }
 
-/* â”€â”€ Selection Info â”€â”€ */
 .selection-info {
   gap: 0;
   font-size: 13px;
@@ -294,6 +292,9 @@ defineEmits([
   border: none;
   background: transparent;
   padding: 0;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
 }
 .selection-action:hover {
   color: #248b17;
@@ -304,6 +305,7 @@ defineEmits([
   width: 16px;
   height: 16px;
   background-color: #2ca01c;
+  display: inline-block;
 }
 
 .selection-action--danger {
@@ -363,8 +365,8 @@ defineEmits([
 
 /* â”€â”€ Icon button wrapper â”€â”€ */
 .utility-icon-btn {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -372,7 +374,7 @@ defineEmits([
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
-  padding: 4px; /* Táº¡o khoáº£ng Ä‘á»‡m cho icon bÃªn trong */
+  padding: 0;
 }
 
 /* Hover effect cho icon button */
@@ -382,14 +384,12 @@ defineEmits([
 
 /* Ã‰p mÃ u icon khi hover vÃ o wrapper - DÃ¹ng mÃ u xanh MISA */
 .utility-icon-btn:hover .utility-icon {
-  background-color: var(--color-primary) !important; 
+  background-color: var(--color-primary) !important;
 }
 
 /* â”€â”€ Icon mask color & base â”€â”€ */
 .utility-icon {
   background-color: #666;
-  width: 24px;
-  height: 24px;
   transition: background-color 0.15s;
 }
 
@@ -419,4 +419,3 @@ defineEmits([
   background-color: var(--color-primary);
 }
 </style>
-

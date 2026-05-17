@@ -45,6 +45,7 @@
             :max-width="col.maxWidth"
             :fixed="col.fixed"
             :fixed-position="col.fixedPosition || undefined"
+            :visible-index="Number.isFinite(col.visibleIndex) ? col.visibleIndex : undefined"
             :alignment="col.alignment || 'left'"
             :cell-template="col.cellTemplate || undefined"
             :header-cell-template="col.headerCellTemplate || undefined"
@@ -132,6 +133,7 @@ const hoveredRowSlotProps = ref(null);
 const hoveredRowTop = ref(0);
 const isHoveringActionOverlay = ref(false);
 let hoverClearTimer = null;
+let columnStateTimer = null;
 
 const actionColumns = computed(() =>
   props.columns.filter((col) => col.type === 'rowActions' && col.cellTemplate)
@@ -352,9 +354,16 @@ const columnsWithCellTemplate = computed(() =>
 /**
  * Lọc các cột có headerCellTemplate để kết nối với named slot động.
  */
-const columnsWithHeaderTemplate = computed(() =>
-  visibleColumns.value.filter((col) => col.headerCellTemplate)
-);
+const columnsWithHeaderTemplate = computed(() => {
+  const seen = new Set();
+  return visibleColumns.value.filter((col) => {
+    if (!col.headerCellTemplate || seen.has(col.headerCellTemplate)) {
+      return false;
+    }
+    seen.add(col.headerCellTemplate);
+    return true;
+  });
+});
 
 const syncHoverOverlayPosition = (cellElement, rowData) => {
   const wrapperElement = gridWrapperRef.value;
@@ -436,6 +445,7 @@ const collectColumnState = (component) => {
     const option = component?.columnOption?.(col.dataField) || {};
     const fixedPosition = option.fixedPosition || col.fixedPosition || 'left';
     const width = option.width ?? option.visibleWidth ?? col.width;
+    const visibleIndex = Number.isFinite(option.visibleIndex) ? option.visibleIndex : index;
 
     return {
       dataField: col.dataField,
@@ -443,9 +453,21 @@ const collectColumnState = (component) => {
       visible: option.visible !== false,
       fixed: !!option.fixed,
       fixedPosition,
-      visibleIndex: Number.isFinite(option.visibleIndex) ? option.visibleIndex : index,
+      visibleIndex,
     };
-  });
+  }).sort((a, b) => a.visibleIndex - b.visibleIndex);
+};
+
+const scheduleColumnStateEmit = (component) => {
+  if (columnStateTimer) {
+    clearTimeout(columnStateTimer);
+  }
+
+  columnStateTimer = setTimeout(() => {
+    columnStateTimer = null;
+    const state = collectColumnState(component);
+    emit('columns-state-changed', state);
+  }, 0);
 };
 
 const handleOptionChanged = (e) => {
@@ -458,12 +480,15 @@ const handleOptionChanged = (e) => {
     return;
   }
 
-  const state = collectColumnState(e.component);
-  emit('columns-state-changed', state);
+  scheduleColumnStateEmit(e.component);
 };
 
 onBeforeUnmount(() => {
   cancelHoverClear();
+  if (columnStateTimer) {
+    clearTimeout(columnStateTimer);
+    columnStateTimer = null;
+  }
 });
 </script>
 
@@ -514,17 +539,17 @@ onBeforeUnmount(() => {
 
 /* Ghi đè vào tận hàng và ô của Header */
 :deep(.dx-datagrid-headers .dx-header-row > td) {
-  background-color: v-bind(headerBg) !important;
+  background-color: #F5F5F5 !important;
   color: #111; /* Màu chữ tiêu đề */
-  font-weight: 700; /* Đậm cho tiêu đề */
+  /* font-weight: 500; Đậm cho tiêu đề */
 }
 /* Đảm bảo cột Checkbox ở Header cũng ăn màu này */
 :deep(.dx-datagrid-headers .dx-select-checkbox-column) {
-  background-color: v-bind(headerBg) !important;
+  background-color: #F5F5F5 !important;
 }
 
 :deep(.dx-datagrid-headers) {
-  background-color: v-bind(headerBg); /* Màu header từ prop */
+  background-color: #F5F5F5; /* Màu header từ prop */
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -551,7 +576,7 @@ onBeforeUnmount(() => {
 
 /* Viền ngang mờ giữa các dòng */
 :deep(.dx-datagrid-rowsview .dx-datagrid-table .dx-row) {
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #670d0d;
 }
 
 /* ── Hover state ── */
@@ -654,5 +679,35 @@ onBeforeUnmount(() => {
 :deep(.dx-selection > td) {
   background-color: #f2f9f2 !important;
 }
+
+/* 6. checkStyle = 'tick' (hiện tick màu xanh trên nền trắng)
+.check-tick :deep(.dx-checkbox-icon) {
+  background-color: #fff !important;
+  border-color: var(--color-primary, #2ca04b) !important;
+}
+
+.check-tick :deep(.dx-datagrid-table .dx-row:hover .dx-checkbox-icon),
+.check-tick :deep(.dx-checkbox:hover .dx-checkbox-icon) {
+  border-color: var(--color-primary-hover, #35b324) !important;
+}
+
+.check-tick :deep(.dx-checkbox-checked .dx-checkbox-icon) {
+  background-color: #fff !important;
+  border-color: var(--color-primary, #2ca04b) !important;
+}
+
+/* Vẽ dấu tick màu xanh (override rule that hides default) */
+/* .check-tick :deep(.dx-checkbox-checked .dx-checkbox-icon::before) {
+  display: block;
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 10px;
+  border: solid var(--color-primary, #2ca04b);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  top: 4px;
+  left: 7px;
+} */
 
 </style>
