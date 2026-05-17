@@ -1,0 +1,348 @@
+/* ==========================================================================
+ * MISA Icon System – Dùng -webkit-mask-image thay background-position
+ *
+ * CÁCH HOẠT ĐỘNG:
+ *   Thay vì dùng background-position (phải dùng filter để đổi màu),
+ *   ta dùng -webkit-mask-image để cắt hình từ sprite SVG.
+ *   Màu icon được điều khiển hoàn toàn bằng background-color → linh hoạt,
+ *   không cần filter: brightness(0) invert(1) nữa.
+ *
+ * CÁCH ĐỔI MÀU:
+ *   .ms-icon--overview { background-color: #a7a6a6; }  ← màu xám mặc định
+ *   .nav-item.active .ms-icon--overview { background-color: #fff; } ← trắng khi active
+ *
+ * LƯU Ý TỌA ĐỘ:
+ *   Các tọa độ (-webkit-mask-position) giữ nguyên giá trị background-position cũ.
+ *   Nếu icon bị sai vị trí, chỉ cần chỉnh mask-position tại đây.
+ *
+ * CÁC ICON CÓ GRADIENT (icon-message, icon-notify, icon-invite...):
+ *   KHÔNG dùng webkit-mask vì sẽ mất màu gradient.
+ *   Các icon đó vẫn giữ nguyên data URI trong TheHeader.vue.
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * BIẾN GỐC – đường dẫn tới file sprite SVG
+ * -------------------------------------------------------------------------- */
+:root {
+  --icon-sprite: url('../img/Icon.c487640.svg');
+}
+
+/* --------------------------------------------------------------------------
+ * BASE CLASS – áp dụng cho mọi icon dùng mask
+ * Mọi element icon đều inherit class này
+ * -------------------------------------------------------------------------- */
+.ms-icon-base {
+  display: inline-block;
+  flex-shrink: 0;
+
+  /* webkit-mask: cắt hình từ sprite SVG */
+  -webkit-mask-image: var(--icon-sprite);
+  mask-image: var(--icon-sprite);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: auto;
+  mask-size: auto;
+
+  /* Màu icon = background-color của element (thay vì background-image) */
+  background-color: currentColor;
+}
+
+/* ==========================================================================
+ * SIDEBAR ICONS – kích thước 20×18px
+ * Các icon menu bên trái sidebar
+ * ========================================================================== */
+
+/* Icon Tổng quan */
+.ms-icon--overview {
+  -webkit-mask-position: 0 -778px;
+  mask-position: 0 -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Thành phần lương */
+.ms-icon--salary {
+  -webkit-mask-position: -120px -778px;
+  mask-position: -120px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Mẫu bảng lương */
+.ms-icon--template {
+  -webkit-mask-position: -100px -778px;
+  mask-position: -100px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Dữ liệu tính lương */
+.ms-icon--data {
+  -webkit-mask-position: -20px -778px;
+  mask-position: -20px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Tính lương */
+.ms-icon--calculate {
+  -webkit-mask-position: -40px -778px;
+  mask-position: -40px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Chi trả */
+.ms-icon--payment {
+  -webkit-mask-position: -60px -778px;
+  mask-position: -60px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Báo cáo */
+.ms-icon--report {
+  -webkit-mask-position: -80px -778px;
+  mask-position: -80px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Thiết lập */
+.ms-icon--settings-side {
+  -webkit-mask-position: -140px -778px;
+  mask-position: -140px -778px;
+  width: 20px;
+  height: 18px;
+}
+
+/* Icon Thu gọn sidebar */
+.ms-icon--toggle-sidebar {
+  -webkit-mask-position: -162px -779px;
+  mask-position: -162px -779px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon mũi tên ">" submenu */
+.ms-icon--arrow-right {
+  -webkit-mask-position: -146px -5px;
+  mask-position: -146px -5px;
+  width: 17px;
+  height: 17px;
+}
+
+/* ==========================================================================
+ * TOOLBAR ICONS – kích thước 24×24px
+ * Dùng cho thanh công cụ danh sách
+ * ========================================================================== */
+
+/* Icon tìm kiếm – LƯU Ý: chỉnh tọa độ theo sprite thực tế */
+.ms-icon--search {
+  -webkit-mask-position: -2px -2px;
+  mask-position: -2px -2px;
+  width: 16px;
+  height: 16px;
+  background-color: #817f7f;
+}
+
+/* Icon lọc */
+.ms-icon--filter {
+  -webkit-mask-position: -18px 3px; 
+  mask-position: -18px 3px;
+  width: 24px;
+  height: 24px;
+  background-color: #666;
+}
+
+/* Icon tùy chỉnh cột */
+.ms-icon--col-settings {
+  -webkit-mask-position: -48px -119px;
+  mask-position: -48px -119px;
+  width: 24px;
+  height: 24px;
+  background-color: #666;  
+}
+
+/* Icon làm mới */
+.ms-icon--refresh {
+  -webkit-mask-position: -1097px -88px;
+  mask-position: -1097px -88px;
+  width: 24px;
+  height: 24px;
+  
+}
+
+/* Icon xuất khẩu */
+.ms-icon--export {
+  -webkit-mask-position: -1153px -88px;
+  mask-position: -1153px -88px;
+  width: 24px;
+  height: 24px;
+}
+
+/* ==========================================================================
+ * HEADER ICONS – kích thước 20×20px
+ * Dùng cho thanh header trên cùng
+ * ========================================================================== */
+
+/* Icon app selector (grid 3×3) */
+.ms-icon--app-selector {
+  -webkit-mask-position: -80px -80px;
+  mask-position: -80px -80px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon tìm kiếm header */
+.ms-icon--header-search {
+  -webkit-mask-position: 0px 0px; /* TODO: chỉnh tọa độ thực tế */
+  mask-position: 0px 0px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon more (3 chấm) */
+.ms-icon--more {
+  -webkit-mask-position: -2px -122px;
+  mask-position: -2px -122px;
+  width: 22px;
+  height: 22px;
+}
+
+/* ==========================================================================
+ * BUTTON ICONS – kích thước 16×16px
+ * Dùng trong các nút bấm
+ * ========================================================================== */
+
+/* Icon dấu + thêm mới */
+.ms-icon--add {
+  -webkit-mask-position: -220px 0;
+  mask-position: -220px 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon mũi tên xuống chevron */
+.ms-icon--chevron-down {
+  -webkit-mask-position: -103px -2px;
+  mask-position: -103px -2px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon liên kết ra ngoài (link-out) */
+.ms-icon--link-out {
+  -webkit-mask-position: -260px -100px; /* TODO: Chỉnh tọa độ thực tế từ sprite */
+  mask-position: -260px -100px;
+  width: 20px;
+  height: 20px;
+  background-color: #817f7f;
+}
+/* Icon ghim */
+.ms-icon--pin {
+  -webkit-mask-position: -80px -312px;
+  mask-position: -80px -312px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Icon ngừng theo dõi (stop/block) */
+.ms-icon--stop {
+  -webkit-mask-position: -220px -40px; /* Tọa độ giả định, cần chỉnh theo sprite */
+  mask-position: -220px -40px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon lưu */
+.ms-icon--save {
+  -webkit-mask-position: -329px -312px;
+  mask-position: -329px -312px;
+  width: 16px;
+  height: 16px;
+}
+
+/* ==========================================================================
+ * ROW ACTION ICONS – kích thước 24×24px
+ * Hiện khi hover lên dòng dữ liệu trong bảng
+ * ========================================================================== */
+
+/* Icon chỉnh sửa (bút chì xanh) */
+.ms-icon--edit {
+  -webkit-mask-position: -60px 0px; /* TODO: chỉnh tọa độ thực tế */
+  mask-position: -60px 0px;
+  width: 24px;
+  height: 24px;
+
+}
+
+/* Icon sao chép */
+.ms-icon--copy {
+  -webkit-mask-position: -80px 0px; /* TODO: chỉnh tọa độ thực tế */
+  mask-position: -80px 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Icon xóa (thùng rác đỏ) */
+.ms-icon--delete {
+  -webkit-mask-position: -120px -20px;
+  mask-position: -120px -20px;
+  width: 24px;
+  height: 24px;
+  background-color: #ff6161 !important;
+}
+
+/* Icon cảnh báo vàng */
+.ms-icon--warning {
+  -webkit-mask-position: -720px -200px; /* TODO: chỉnh tọa độ thực tế */
+  mask-position: -720px -200px;
+  width: 16px;
+  height: 16px;
+}
+
+/* ==========================================================================
+ * NAVIGATION ICONS
+ * ========================================================================== */
+
+/* Icon mũi tên quay lại ← */
+.ms-icon--back {
+  -webkit-mask-position: -177px 3px; /* TODO: chỉnh tọa độ thực tế */
+  mask-position: -177px 3px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Icon phân trang prev < */
+.ms-icon--pager-prev {
+  -webkit-mask-position: -160px 0;
+  mask-position: -160px 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon phân trang next > */
+.ms-icon--pager-next {
+  -webkit-mask-position: -140px 0;
+  mask-position: -140px 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon thông tin (i) dùng trong tooltip */
+.ms-icon--info {
+  -webkit-mask-position: -200px -40px; /* TODO: chỉnh tọa độ thực tế */
+  mask-position: -200px -40px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Icon select dropdown arrow */
+.ms-icon--select-arrow {
+  -webkit-mask-position: -104px -7px;
+  mask-position: -104px -2px;
+  background-color: rgb(135, 137, 137);
+  width: 16px;
+  height: 16px;
+}

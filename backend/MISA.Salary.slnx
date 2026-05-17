@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="MISA.Salary.API/MISA.Salary.API.csproj" />
+  <Project Path="MISA.Salary.BL/MISA.Salary.BL.csproj" />
+  <Project Path="MISA.Salary.Common/MISA.Salary.Common.csproj" />
+  <Project Path="MISA.Salary.DL/MISA.Salary.DL.csproj" />
+</Solution>

@@ -1,0 +1,12 @@
+.vs/
+.vscode/
+database/
+FEATURES.md
+
+**/bin/
+**/obj/
+**/.vs/
+
+**/node_modules/
+**/dist/
+**/.env.local
