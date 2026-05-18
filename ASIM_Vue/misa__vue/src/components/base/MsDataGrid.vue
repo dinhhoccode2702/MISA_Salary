@@ -440,11 +440,26 @@ const handleCellHoverChanged = (e) => {
   }
 };
 
+/**
+ * Bước 2 trong luồng kéo thả cột.
+ *
+ * Ai gọi: scheduleColumnStateEmit().
+ * Nhận vào: instance DevExtreme DataGrid qua biến component.
+ * Việc làm:
+ * - Đọc lại trạng thái thật của từng cột từ DevExtreme bằng columnOption(dataField).
+ * - Lấy width để biết cột đang rộng bao nhiêu.
+ * - Lấy fixed/fixedPosition để biết cột có đang ghim không.
+ * - Lấy visibleIndex để biết cột đang nằm ở vị trí thứ mấy sau khi kéo.
+ * Trả ra: mảng state đã sort theo visibleIndex, tức là đúng thứ tự cột đang thấy trên UI.
+ */
 const collectColumnState = (component) => {
+  // DevExtreme giữ trạng thái cột bên trong instance.
+  // Hàm này đọc lại trạng thái đó để parent có thể lưu vào store/DB.
   return visibleColumns.value.map((col, index) => {
     const option = component?.columnOption?.(col.dataField) || {};
     const fixedPosition = option.fixedPosition || col.fixedPosition || 'left';
     const width = option.width ?? option.visibleWidth ?? col.width;
+    // visibleIndex là vị trí hiện tại của cột sau khi người dùng kéo thả.
     const visibleIndex = Number.isFinite(option.visibleIndex) ? option.visibleIndex : index;
 
     return {
@@ -455,9 +470,23 @@ const collectColumnState = (component) => {
       fixedPosition,
       visibleIndex,
     };
+  // Sort theo visibleIndex để mảng state phản ánh đúng thứ tự cột trên màn hình.
   }).sort((a, b) => a.visibleIndex - b.visibleIndex);
 };
 
+/**
+ * Bước 3 trong luồng kéo thả cột.
+ *
+ * Ai gọi: handleOptionChanged().
+ * Việc làm:
+ * - Chờ sang tick tiếp theo bằng setTimeout(..., 0) để DevExtreme cập nhật xong state nội bộ.
+ * - Gọi collectColumnState() để gom trạng thái cột mới nhất.
+ * - Emit columns-state-changed lên component cha SalaryCompositionList.vue.
+ *
+ * Lý do có timer:
+ * Khi kéo cột, DevExtreme có thể bắn option-changed trước khi mọi visibleIndex ổn định.
+ * Delay 0ms giúp đọc state sau khi grid đã xử lý xong thao tác kéo.
+ */
 const scheduleColumnStateEmit = (component) => {
   if (columnStateTimer) {
     clearTimeout(columnStateTimer);
@@ -470,16 +499,30 @@ const scheduleColumnStateEmit = (component) => {
   }, 0);
 };
 
+/**
+ * Bước 1 trong luồng kéo thả cột.
+ *
+ * Ai gọi: DevExtreme DxDataGrid tự gọi khi option của grid thay đổi.
+ * Trường hợp kéo cột: DevExtreme đổi option columns[x].visibleIndex.
+ *
+ * Việc làm:
+ * - Bỏ qua các option không thuộc columns.
+ * - Chỉ giữ các thay đổi có ý nghĩa lưu cấu hình như visibleIndex, width, fixed.
+ * - Gọi scheduleColumnStateEmit() để gom state và báo lên màn cha.
+ */
 const handleOptionChanged = (e) => {
+  // DevExtreme bắn rất nhiều option-changed; chỉ xử lý thay đổi thuộc columns.
   if (!e?.fullName?.startsWith?.('columns[')) {
     return;
   }
 
+  // Chỉ các thay đổi này cần lưu cấu hình grid: kéo cột, resize, ẩn/hiện, ghim.
   const persistableChanges = ['.visibleIndex', '.width', '.visibleWidth', '.visible', '.fixed', '.fixedPosition'];
   if (!persistableChanges.some((key) => e.fullName.endsWith(key))) {
     return;
   }
 
+  // Gom lại state mới rồi emit lên màn cha qua event columns-state-changed.
   scheduleColumnStateEmit(e.component);
 };
 

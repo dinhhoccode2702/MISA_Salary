@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using MISA.Salary.BL.Base;
 using MISA.Salary.BL.Interfaces;
@@ -27,7 +28,7 @@ namespace MISA.Salary.BL.Services
         public async Task<ServiceResult> GetByTableNameAsync(string tableName)
         {
             var data = await _gridConfigRepo.GetByTableNameAsync(tableName);
-            return ServiceResult.Success(data);
+            return ServiceResult.Success(data.Select(GridConfigDto.FromEntity));
         }
 
         /// <summary>

@@ -543,8 +543,7 @@ const getServiceData = (response) => {
 
 const isSystemSalaryComposition = (row) =>
   Number(row?.SalaryCompositionIsSystemStatus) === 1 ||
-  row?.Source === 'Hệ thống' ||
-  row?.NguonTao === 'Mặc định';
+  row?.Source === 'Hệ thống';
 
 
 const searchText = ref('');
@@ -595,8 +594,19 @@ const saveColumnSettings = async () => {
   closeColumnSettings();
 };
 
+/**
+ * Bước 6 trong luồng kéo thả cột.
+ *
+ * Ai gọi: handleColumnsStateChanged().
+ * Việc làm: lưu cấu hình cột xuống backend sau khi store đã cập nhật thứ tự mới.
+ *
+ * Dùng debounce 500ms vì một thao tác kéo/resize có thể làm DevExtreme bắn nhiều event.
+ * Nếu lưu ngay từng event thì API PUT /grid-configs sẽ bị gọi liên tục không cần thiết.
+ */
 const scheduleColumnConfigSave = () => {
   clearTimeout(columnConfigSaveTimer);
+  // Khi kéo/resize cột DevExtreme có thể bắn nhiều event liên tiếp,
+  // nên debounce 500ms để không gọi API lưu cấu hình quá dày.
   columnConfigSaveTimer = setTimeout(() => {
     salaryStore.saveGridConfigs().catch((error) => {
       console.error('[SalaryCompositionList] auto save column config error:', error);
@@ -604,7 +614,19 @@ const scheduleColumnConfigSave = () => {
   }, 500);
 };
 
+/**
+ * Bước 4 trong luồng kéo thả cột.
+ *
+ * Ai gọi: MsDataGrid.vue emit event columns-state-changed.
+ * Nhận vào: state là danh sách trạng thái cột hiện tại sau khi kéo.
+ *
+ * Việc làm:
+ * - Đưa state vào salaryStore.applyColumnRuntimeState() để cập nhật mảng columns.
+ * - Gọi scheduleColumnConfigSave() để lưu thứ tự mới xuống DB.
+ */
 const handleColumnsStateChanged = (state) => {
+  // state là danh sách cột hiện tại do MsDataGrid đọc từ DevExtreme.
+  // Store dùng nó để cập nhật width, fixed và thứ tự hiển thị của cột.
   salaryStore.applyColumnRuntimeState(state);
   scheduleColumnConfigSave();
 };
@@ -621,6 +643,8 @@ const isPinAnchorColumn = (dataField) => {
 
 const handlePinColumn = async (dataField) => {
   if (!dataField) return;
+  // Chỉ truyền tên field của cột được bấm, ví dụ SalaryCompositionCode.
+  // Store sẽ tự đánh dấu fixed cho toàn bộ nhóm cột từ trái đến cột này.
   salaryStore.pinColumn(dataField);
 
   try {
@@ -702,9 +726,9 @@ const FILTER_FIELDS = [
   { key: 'SalaryCompositionType', label: 'Loại thành phần' },
   { key: 'AppliedUnit', label: 'Đơn vị áp dụng' },
   { key: 'Nature', label: 'Tính chất' },
-  { key: 'KieuGiaTri', label: 'Kiểu giá trị' },
-  { key: 'GiaTri', label: 'Giá trị' },
-  { key: 'NguonTao', label: 'Nguồn tạo' },
+  { key: 'ValueType', label: 'Kiểu giá trị' },
+  { key: 'DisplayValue', label: 'Giá trị' },
+  { key: 'Source', label: 'Nguồn tạo' },
   { key: 'Status', label: 'Hiển thị trên phiếu lương' },
 ];
 
@@ -799,12 +823,13 @@ onBeforeUnmount(() => {
 });
 
 
-/**
- */
+// Chuyển cấu hình cột trong store thành cấu hình mà MsDataGrid/DxColumn cần để render.
 const gridColumns = computed(() => {
   const cols = salaryStore.visibleColumns.map((col) => {
     const newCol = { ...col, alignment: 'left' };
+    // Gắn header template để mỗi cột có icon ghim.
     newCol.headerCellTemplate = 'pinHeaderTemplate';
+    // pinAnchor là cột cuối trong nhóm ghim, dùng class này để vẽ vạch ngăn.
     newCol.cssClass = col.pinAnchor ? 'ms-grid-pin-anchor' : undefined;
     
     if (col.dataField === 'Nature') {
@@ -814,6 +839,7 @@ const gridColumns = computed(() => {
     return newCol;
   });
 
+  // Cột thao tác được render bằng overlay riêng khi hover, không lưu xuống DB grid config.
   cols.push({
     type: 'rowActions',
     cellTemplate: 'actionTemplate',
