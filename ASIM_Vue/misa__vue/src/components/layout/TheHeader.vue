@@ -183,23 +183,19 @@
 
 /* Icon Sprites */
 .icon-app-selector {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 16px;
+  height: 16px;
   position: relative;
   cursor: pointer;
+  mask-image: url(https://testcdnamisapp.misacdn.net/apps/payroll/static/img/ICON_V3_1-qvutYp_o.svg);
+  mask-position: -62px -82px;
+  mask-repeat: no-repeat;
+  background-color: #434343 !important;
+  
 }
 
 .icon-app-selector:hover {
   background-color: #f5f5f5;
-}
-
-.icon-app-selector::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  background-image: url('../../assets/img/Icon.c487640.svg');
-  background-position: -80px -80px;
 }
 
 .icon-cart{

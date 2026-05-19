@@ -418,12 +418,17 @@ watch([systemImportSearch, systemImportType], () => {
   systemImportGridRef.value?.clearSelection?.();
 });
 
-const openSystemImportModal = async () => {
-  showSystemImportModal.value = true;
+const resetSystemImportGridState = () => {
   systemImportSearch.value = '';
   systemImportType.value = 'Tất cả thành phần';
   systemImportSelectedRows.value = [];
   systemImportPagination.value = { currentPage: 1, pageSize: 25 };
+  systemImportGridRef.value?.clearSelection?.();
+};
+
+const openSystemImportModal = async () => {
+  showSystemImportModal.value = true;
+  resetSystemImportGridState();
   if (!organizationRows.value.length) {
     await loadOrganizations();
   }
@@ -432,11 +437,17 @@ const openSystemImportModal = async () => {
   await salaryStore.fetchSystemComponents();
 };
 
+const resetMainUnitFilter = () => {
+  salaryStore.setFilter('unit', '');
+
+  const unitFilter = toolbarFilters.value.find((f) => f.id === 'unit');
+  if (unitFilter) unitFilter.modelValue = '';
+};
+
 const closeSystemImportModal = () => {
   showSystemImportModal.value = false;
-  systemImportSelectedRows.value = [];
+  resetSystemImportGridState();
   systemImportOrganizationId.value = '';
-  systemImportGridRef.value?.clearSelection?.();
 };
 
 const handleSystemImportSelectionChanged = (e) => {
@@ -470,6 +481,8 @@ const submitSystemImport = async () => {
     try {
       const response = await salaryService.bulkImport({ SystemIds: systemIds, OrganizationId: orgId });
       const insertedCount = Number(getServiceData(response)) || 0;
+      resetMainUnitFilter();
+
       closeSystemImportModal();
       await salaryStore.fetchSalaryCompositions();
       if (insertedCount > 0) {
@@ -820,6 +833,10 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(columnConfigSaveTimer);
+  clearTimeout(searchTimeout);
+  resetSystemImportGridState();
+  salaryStore.setSearchText('');
+  salaryStore.setPagination({ currentPage: 1 });
 });
 
 
@@ -829,8 +846,6 @@ const gridColumns = computed(() => {
     const newCol = { ...col, alignment: 'left' };
     // Gắn header template để mỗi cột có icon ghim.
     newCol.headerCellTemplate = 'pinHeaderTemplate';
-    // pinAnchor là cột cuối trong nhóm ghim, dùng class này để vẽ vạch ngăn.
-    newCol.cssClass = col.pinAnchor ? 'ms-grid-pin-anchor' : undefined;
     
     if (col.dataField === 'Nature') {
       newCol.cellTemplate = 'natureTemplate';
@@ -1041,11 +1056,6 @@ const refreshData = () => {
   -webkit-mask: url('../../assets/img/ICON_V3_1-qvutYp_o.svg') no-repeat center;
   -webkit-mask-position: -145px -82px;
   background-color: var(--color-primary);
-}
-
-:deep(.dx-datagrid-headers .dx-header-row > td.ms-grid-pin-anchor),
-:deep(.dx-datagrid-rowsview .dx-row > td.ms-grid-pin-anchor) {
-  border-right: 2px solid var(--color-primary) !important;
 }
 
 .advanced-filter-panel {

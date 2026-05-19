@@ -340,6 +340,7 @@ const importSystemRows = async (rows) => {
   }
 
   await salaryService.bulkImport({ SystemIds: systemIds, OrganizationId: organizationId });
+  salaryStore.setFilter('unit', '');
   await salaryStore.fetchSalaryCompositions();
   toast.show(`Đã thêm ${systemIds.length} thành phần vào danh sách sử dụng.`, 'success');
   router.push('/salary-composition');

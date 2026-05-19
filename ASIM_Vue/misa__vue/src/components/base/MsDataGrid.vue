@@ -49,6 +49,7 @@
             :alignment="col.alignment || 'left'"
             :cell-template="col.cellTemplate || undefined"
             :header-cell-template="col.headerCellTemplate || undefined"
+            :css-class="col.pinAnchor ? 'ms-grid-pin-anchor' : undefined"
             :sort-order="col.sortOrder || undefined"
             :allow-sorting="col.allowSorting !== false"
           />
@@ -615,6 +616,27 @@ onBeforeUnmount(() => {
   padding: 10px 16px;
   font-size: 13px;
   vertical-align: middle;
+}
+
+:deep(.dx-datagrid-headers .dx-header-row > td.ms-grid-pin-anchor) {
+  border-right: 2px solid #e0e0e0 !important;
+}
+
+:deep(.dx-datagrid-rowsview .dx-data-row > td.ms-grid-pin-anchor) {
+  border-right: 2px solid #e0e0e0 !important;
+}
+
+:deep(.dx-datagrid-rowsview .dx-freespace-row > td.ms-grid-pin-anchor),
+:deep(.dx-datagrid-rowsview .dx-virtual-row > td.ms-grid-pin-anchor) {
+  border-right: none !important;
+}
+
+:deep(.dx-datagrid-headers .dx-datagrid-content-fixed),
+:deep(.dx-datagrid-rowsview .dx-datagrid-content-fixed),
+:deep(.dx-datagrid-headers .dx-datagrid-content-fixed .dx-datagrid-table),
+:deep(.dx-datagrid-rowsview .dx-datagrid-content-fixed .dx-datagrid-table) {
+  border-right: none !important;
+  box-shadow: none !important;
 }
 
 /* Viền ngang mờ giữa các dòng */
