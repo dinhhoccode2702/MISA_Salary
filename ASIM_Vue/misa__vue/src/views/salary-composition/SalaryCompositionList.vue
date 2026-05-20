@@ -559,7 +559,10 @@ const isSystemSalaryComposition = (row) =>
   row?.Source === 'Hệ thống';
 
 
-const searchText = ref('');
+const searchText = computed({
+  get: () => salaryStore.searchText,
+  set: (value) => salaryStore.setSearchText(value),
+});
 
 const showColumnSettings = ref(false);
 
@@ -788,10 +791,9 @@ const applyFilterFields = () => {
 };
 
 let searchTimeout;
-watch(searchText, (newVal) => {
+const stopSearchWatch = watch(searchText, () => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    salaryStore.setSearchText(newVal);
     salaryStore.fetchSalaryCompositions();
   }, 500);
 });
@@ -832,6 +834,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  stopSearchWatch();
   clearTimeout(columnConfigSaveTimer);
   clearTimeout(searchTimeout);
   resetSystemImportGridState();

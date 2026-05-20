@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MISA.Salary.Common.Attributes;
 using MISA.Salary.Common.DTOs;
 using MISA.Salary.Common.Exceptions;
+using MISA.Salary.Common.Model;
 using MISA.Salary.DL.Base;
 
 namespace MISA.Salary.BL.Base
@@ -50,7 +52,6 @@ namespace MISA.Salary.BL.Base
         public virtual async Task<ServiceResult> GetByIdAsync(Guid id)
         {
             var entity = await _repository.GetByIdAsync(id);
-
             // Nếu không tìm thấy bản ghi -> throw NotFoundException (trả về 404)
             if (entity == null)
             {

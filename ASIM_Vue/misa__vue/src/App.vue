@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import TheHeader from './components/layout/TheHeader.vue'
 import TheSidebar from './components/layout/TheSidebar.vue'
 import MsButton from './components/base/MsButton.vue'
@@ -7,14 +8,18 @@ import MsToast from './components/common/MsToast.vue'
 import { useToast } from './composables/useToast'
 
 const { toasts, confirms, closeConfirm } = useToast()
+const isSidebarCollapsed = ref(false)
 </script>
 
 <template>
   <div class="app-container">
     <TheHeader />
     <div class="main-layout flex">
-      <TheSidebar />
-      <main class="main-content">
+      <TheSidebar @collapse-change="isSidebarCollapsed = $event" />
+      <main
+        class="main-content"
+        :class="{ 'main-content--sidebar-collapsed': isSidebarCollapsed }"
+      >
         <router-view></router-view>
       </main>
     </div>
@@ -77,6 +82,11 @@ const { toasts, confirms, closeConfirm } = useToast()
   flex-direction: column;
   overflow: hidden; /* Prevent body scroll, use internal scroll */
   transition: margin-left 0.3s ease;
+}
+
+.main-content--sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+  min-width: calc(1366px - var(--sidebar-collapsed-width));
 }
 
 .confirm-message {

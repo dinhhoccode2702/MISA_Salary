@@ -79,14 +79,14 @@ namespace MISA.Salary.DL.Repositories
             // Mặc định sắp xếp theo ngày sửa đổi mới nhất
             var orderClause = "sc.modified_date DESC";
             
-            if (!string.IsNullOrEmpty(sort))
-            {
-                // Logic đơn giản: Nếu sort truyền lên dạng chuỗi JSON của DevExtreme
-                // Trong thực tế sẽ dùng thư viện Parser, ở đây ta xử lý cơ bản để bạn nắm nguyên lý
-                if (sort.Contains("SalaryCompositionCode")) orderClause = "sc.salary_composition_code " + (sort.Contains("desc\":true") ? "DESC" : "ASC");
-                else if (sort.Contains("SalaryCompositionName")) orderClause = "sc.salary_composition_name " + (sort.Contains("desc\":true") ? "DESC" : "ASC");
-                else if (sort.Contains("OrganizationName")) orderClause = "o.organization_name " + (sort.Contains("desc\":true") ? "DESC" : "ASC");
-            }
+            // if (!string.IsNullOrEmpty(sort))
+            // {
+            //     // Logic đơn giản: Nếu sort truyền lên dạng chuỗi JSON của DevExtreme
+            //     // Trong thực tế sẽ dùng thư viện Parser, ở đây ta xử lý cơ bản để bạn nắm nguyên lý
+            //     if (sort.Contains("SalaryCompositionCode")) orderClause = "sc.salary_composition_code " + (sort.Contains("desc\":true") ? "DESC" : "ASC");
+            //     else if (sort.Contains("SalaryCompositionName")) orderClause = "sc.salary_composition_name " + (sort.Contains("desc\":true") ? "DESC" : "ASC");
+            //     else if (sort.Contains("OrganizationName")) orderClause = "o.organization_name " + (sort.Contains("desc\":true") ? "DESC" : "ASC");
+            // }
 
             // 3. Đếm tổng số bản ghi (để FE tính số trang)
             var countSql = $@"SELECT COUNT(*) FROM pa_salary_composition sc

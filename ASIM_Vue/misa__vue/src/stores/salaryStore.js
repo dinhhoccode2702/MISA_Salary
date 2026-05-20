@@ -493,11 +493,16 @@ export const useSalaryStore = defineStore('salary', {
     },
 
     async fetchSalaryCompositionById(id) {
-      const local = this.salaryCompositions.find((i) => i.SalaryCompositionId === id);
-      if (local) {
-        this.currentItem = { ...local };
-        return;
-      }
+      let local = this.salaryCompositions.find((i) => i.SalaryCompositionId === id);
+
+  //     local = undefined; 
+
+  // // In ra ngay trước khi vào IF để kiểm tra
+  // console.log('Giá trị local NGAY TRƯỚC IF là:', local);
+  //     if (local) {
+  //       this.currentItem = { ...local };
+  //       return;
+  //     }
 
       this.loading = true;
       try {
@@ -667,7 +672,7 @@ export const useSalaryStore = defineStore('salary', {
       const item = this.salaryCompositions.find((i) => i.SalaryCompositionId === id);
       if (!item) return false;
 
-      const normalizedCode = status === 0 || status === 1 ? Number(status) : (String(status).startsWith('Ng') ? 0 : 1);
+      const normalizedCode = Number(status);
 
       this.loading = true;
       try {

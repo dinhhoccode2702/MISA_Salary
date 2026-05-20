@@ -37,7 +37,7 @@
           :aria-label="isCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'"
           :data-tooltip="isCollapsed ? 'Mở rộng' : null"
           data-tooltip-position="right"
-          @click="isCollapsed = !isCollapsed"
+          @click="toggleCollapse"
         >
           <span
             class="icon-toggle ms-icon-base ms-icon--toggle-sidebar"
@@ -56,6 +56,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const isCollapsed = ref(false);
+const emit = defineEmits(['collapse-change']);
 
 const menuItems = [
   { id: 'overview', text: 'Tổng quan', iconName: 'overview', path: '/overview' },
@@ -70,6 +71,11 @@ const menuItems = [
 
 const navigateTo = (path) => {
   router.push(path);
+};
+
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value;
+  emit('collapse-change', isCollapsed.value);
 };
 </script>
 <style scoped>
