@@ -34,7 +34,7 @@
   --sidebar-icon-color: #a7a6a6;            /* Màu icon sidebar mặc định (xám) */
 
   /* --- Màu nền --- */
-  --app-bg:    #737373; /* Nền ứng dụng (xám nhạt MISA) */
+  --app-bg:    #f4f5f7; /* Nền ứng dụng */
   --header-bg: #ffffff;   /* Nền header */
   --white:     #ffffff;
 
@@ -74,7 +74,7 @@
 }
 
 html {
-  min-width: 1366px;
+  width: 100%;
 }
 
 body {
@@ -82,8 +82,8 @@ body {
   color: var(--text-primary);
   font-size: 14px;
   height: 100vh;
-  min-width: 1366px;
-  overflow: auto hidden;
+  width: 100%;
+  overflow: hidden;
 }
 
 a {

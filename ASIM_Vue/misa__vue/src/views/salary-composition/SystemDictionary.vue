@@ -428,7 +428,7 @@ onMounted(async () => {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background-color: #efefef;
+  background-color: var(--app-bg);
 }
 
 .page-content {
@@ -440,6 +440,7 @@ onMounted(async () => {
   overflow: hidden;
   background-color: #fff;
   border: 1px solid #e0e0e0;
+  border-radius: 8px;
   position: relative;
 }
 

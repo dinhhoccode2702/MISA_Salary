@@ -63,19 +63,22 @@ const isSidebarCollapsed = ref(false)
   display: flex;
   flex-direction: column;
   height: 100vh;
-  min-width: 1366px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .main-layout {
   flex: 1;
   margin-top: var(--header-height);
-  min-width: 1366px;
+  width: 100%;
+  min-width: 0;
 }
 
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
-  min-width: calc(1366px - var(--sidebar-width));
+  min-width: 0;
   background-color: var(--app-bg);
   height: calc(100vh - var(--header-height));
   display: flex;
@@ -86,7 +89,6 @@ const isSidebarCollapsed = ref(false)
 
 .main-content--sidebar-collapsed {
   margin-left: var(--sidebar-collapsed-width);
-  min-width: calc(1366px - var(--sidebar-collapsed-width));
 }
 
 .confirm-message {

@@ -75,11 +75,16 @@
   top: 0;
   left: 0;
   width: 100%;
-  min-width: 1366px;
+  min-width: 0;
   z-index: 1000;
+  gap: 16px;
 }
 
 /* Left Header */
+.header-left {
+  min-width: 0;
+}
+
 .logo {
   width: auto !important;
   height: 40px !important;
@@ -95,8 +100,9 @@
 }
 
 .header-search-wrapper {
-  width: 300px;
+  width: clamp(240px, 24vw, 360px);
   margin: 4px;
+  min-width: 180px;
 }
 
 .ms-input {
@@ -139,6 +145,10 @@
 }
 
 /* Right Header */
+.header-right {
+  flex-shrink: 0;
+}
+
 .utility-icon {
   width: 36px;
   height: 36px;
@@ -279,4 +289,3 @@ height: 24px;
     background-repeat: no-repeat;
 }
 </style>
-

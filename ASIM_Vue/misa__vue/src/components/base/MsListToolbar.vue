@@ -57,7 +57,7 @@
           :key="filter.id"
           :model-value="filter.modelValue"
           :options="filter.options"
-          :class="['toolbar-select', (filter.id === 'status' || filter.id === 'type') ? 'no-border' : '']"
+          class="toolbar-select"
           :style="{ width: filter.width || '180px' }"
           @update:model-value="$emit('filter-change', { id: filter.id, value: $event })"
         />
@@ -241,7 +241,7 @@ defineEmits([
 }
 
 .toolbar-search {
-  width: 300px;
+  width: clamp(260px, 24vw, 340px);
   flex-shrink: 0;
 }
 
@@ -340,6 +340,12 @@ defineEmits([
 
 .toolbar-select {
   min-width: 180px;
+}
+
+.toolbar-select :deep(.ms-select-display) {
+  border-color: #dfe3e8;
+  border-radius: 4px;
+  background-color: #fff;
 }
 
 /* CHá»ˆ xÃ³a viá»n cá»§a Ã´ Tráº¡ng thÃ¡i (id: status) - nhÆ°ng váº«n giá»¯ viá»n nháº¹ khi hover */

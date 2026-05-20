@@ -565,10 +565,10 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   height: 48px;
   padding: 0 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
-  background-color: #f4f5f8; /* Đổi thành màu xám theo yêu cầu */
+  background-color: #fff;
 }
 
 :deep(.ms-pager) {
@@ -583,26 +583,26 @@ onBeforeUnmount(() => {
 
 /* Ghi đè vào tận hàng và ô của Header */
 :deep(.dx-datagrid-headers .dx-header-row > td) {
-  background-color: #F5F5F5 !important;
+  background-color: #f7f8fa !important;
   color: #111; /* Màu chữ tiêu đề */
   /* font-weight: 500; Đậm cho tiêu đề */
 }
 /* Đảm bảo cột Checkbox ở Header cũng ăn màu này */
 :deep(.dx-datagrid-headers .dx-select-checkbox-column) {
-  background-color: #F5F5F5 !important;
+  background-color: #f7f8fa !important;
 }
 
 :deep(.dx-datagrid-headers) {
-  background-color: #F5F5F5; /* Màu header từ prop */
-  border-bottom: 1px solid #e0e0e0;
+  background-color: #f7f8fa;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 :deep(.dx-datagrid-headers .dx-datagrid-table .dx-header-row > td) {
   border-right: none;
-  padding: 10px 16px;
+  padding: 10px 14px;
   font-size: 13px;
-  font-weight: 700;
-  color: #111;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 /* Khi showColumnLines = true thì thêm viền dọc */
@@ -613,7 +613,7 @@ onBeforeUnmount(() => {
 /* ── Body row styles ── */
 :deep(.dx-datagrid-rowsview .dx-datagrid-table .dx-row > td) {
   border-right: none;
-  padding: 10px 16px;
+  padding: 9px 14px;
   font-size: 13px;
   vertical-align: middle;
 }
@@ -641,7 +641,7 @@ onBeforeUnmount(() => {
 
 /* Viền ngang mờ giữa các dòng */
 :deep(.dx-datagrid-rowsview .dx-datagrid-table .dx-row) {
-  border-bottom: 1px solid #670d0d;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 /* ── Hover state ── */

@@ -32,7 +32,7 @@
           search-icon-class="ms-icon--search" 
           :filters="toolbarFilters"
           filters-align="right"
-          :show-filter="true"                    
+          :show-filter="false"
           :show-settings="true"                  
           :selected-count="salaryStore.selectedCount"
           :selection-actions="selectionToolbarActions"
@@ -979,7 +979,7 @@ const refreshData = () => {
   flex: 1;
   height: 100%;
   overflow: hidden;
-  background-color: #efefef;
+  background-color: var(--app-bg);
 }
 
 .page-content {
@@ -991,7 +991,7 @@ const refreshData = () => {
   overflow: hidden;
   background-color: #fff;
   border: 1px solid #e0e0e0;
-  border-radius: 10px;
+  border-radius: 8px;
   position: relative;
 }
 
@@ -1037,19 +1037,24 @@ const refreshData = () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0.72;
+  opacity: 0;
   padding: 0;
   transition: background-color 0.15s, opacity 0.15s;
 }
 
-.header-pin-button:hover,
-.header-pin-button--pinned {
-  background-color: #eaf7ef;
+.header-pin-cell:hover .header-pin-button,
+.header-pin-button--pinned,
+.header-pin-button--active {
   opacity: 1;
 }
 
+.header-pin-button:hover,
+.header-pin-button--pinned {
+  background-color: #f3f4f6;
+}
+
 .header-pin-button--active {
-  background-color: #dff3e6;
+  background-color: #eaf7ef;
   box-shadow: inset 0 0 0 1px rgba(44, 160, 75, 0.28);
 }
 
@@ -1058,6 +1063,12 @@ const refreshData = () => {
   height: 16px;
   -webkit-mask: url('../../assets/img/ICON_V3_1-qvutYp_o.svg') no-repeat center;
   -webkit-mask-position: -145px -82px;
+  background-color: #8a8f98;
+}
+
+.header-pin-button:hover .header-pin-icon,
+.header-pin-button--pinned .header-pin-icon,
+.header-pin-button--active .header-pin-icon {
   background-color: var(--color-primary);
 }
 
@@ -1253,28 +1264,29 @@ const refreshData = () => {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 18px;
-  border: 1px solid var(--color-primary);
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(44, 160, 28, 0.28);
   color: var(--color-primary);
-  background: rgba(44,160,28,0.04);
-  font-weight: 600;
+  background: rgba(44,160,28,0.06);
+  font-weight: 500;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .status-badge__dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-primary);
   flex-shrink: 0;
 }
 
 .status-badge--inactive {
-  border-color: #f2994a; /* orange */
-  color: #f2994a;
-  background: rgba(242,153,74,0.06);
+  border-color: rgba(242, 153, 74, 0.35);
+  color: #d96f16;
+  background: rgba(242,153,74,0.08);
 }
 
 .status-badge--inactive .status-badge__dot {
