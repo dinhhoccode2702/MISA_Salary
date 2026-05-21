@@ -145,7 +145,7 @@ const isTimeoutError = (error) =>
   String(error?.message || '').toLowerCase().includes('timeout');
 
 const mapSalaryComposition = (item) => {
-  const rawValue = item?.salaryCompositionValueFormula ?? item?.SalaryCompositionValueFormula ?? item?.salaryCompositionValue ?? item?.SalaryCompositionValue ?? item?.valueFormula ?? item?.ValueFormula ?? item?.value ?? item?.Value ?? '';
+  const rawValue = item?.salaryCompositionValueFormula ?? item?.SalaryCompositionValueFormula ?? '';
   const rawFormula = (rawValue ?? '').toString().trim();
   const formulaExpression = rawFormula.startsWith('=') ? rawFormula.slice(1) : rawFormula;
   const activeStatus = Number(item?.salaryCompositionActiveStatus ?? item?.SalaryCompositionActiveStatus);
